@@ -1,0 +1,1801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kitchenette — Staffing / FTE Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0f1117;--surface:#1a1d27;--surface2:#242836;--surface3:#2e3345;--border:#363b4e;--text:#e4e6f0;--text2:#9ba1b7;--text3:#6b7190;--accent:#6c8cff;--accent2:#4a6bdf;--green:#34d399;--yellow:#fbbf24;--red:#f87171;--purple:#a78bfa;--teal:#2dd4bf;--pink:#f472b6;--orange:#fb923c}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);overflow:hidden;height:100vh;display:flex;flex-direction:column}
+.header{background:linear-gradient(135deg,#1e2235,#252a40);padding:12px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.header h1{font-size:18px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header .subtitle{font-size:11px;color:var(--text3);margin-top:2px}
+.header-right{display:flex;gap:8px;align-items:center}
+.btn{padding:6px 14px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:11px;font-family:inherit;cursor:pointer;transition:all .15s}
+.btn:hover{background:var(--surface3);border-color:var(--accent)}
+.btn-accent{background:var(--accent2);border-color:var(--accent);color:#fff}
+.btn-accent:hover{background:var(--accent)}
+.row-count{font-size:11px;color:var(--text2);padding:4px 10px;background:var(--surface);border-radius:6px;border:1px solid var(--border)}
+.filter-bar{background:var(--surface);padding:10px 24px;border-bottom:1px solid var(--border);display:flex;gap:12px;align-items:flex-start;flex-shrink:0;flex-wrap:wrap}
+.filter-group{position:relative}
+.filter-group label{display:block;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.filter-btn{padding:5px 28px 5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:11px;font-family:inherit;cursor:pointer;min-width:140px;text-align:left;position:relative;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
+.filter-btn::after{content:'▾';position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--text3)}
+.filter-btn:hover{border-color:var(--accent)}
+.dropdown{position:absolute;top:100%;left:0;margin-top:4px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;z-index:1000;min-width:200px;max-height:300px;overflow-y:auto;display:none;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.dropdown.open{display:block}
+.dropdown-item{padding:6px 12px;font-size:11px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .1s}
+.dropdown-item:hover{background:var(--surface3)}
+.dropdown-item.selected{color:var(--accent)}
+.dropdown-item input[type=checkbox]{accent-color:var(--accent);width:13px;height:13px}
+.dropdown-divider{border-top:1px solid var(--border);margin:2px 0}
+.dropdown-item.select-all{font-weight:600;color:var(--accent);border-bottom:1px solid var(--border);padding:8px 12px}
+.tabs{display:flex;gap:0;flex-shrink:0;background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px}
+.tab{padding:8px 20px;font-size:12px;font-weight:500;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.content{flex:1;overflow:auto;padding:0}
+.table-wrap{overflow:auto;height:100%}
+table{width:100%;border-collapse:collapse;font-size:11px}
+thead{position:sticky;top:0;z-index:10}
+thead th{background:var(--surface2);padding:8px 10px;text-align:left;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.3px;color:var(--text2);border-bottom:2px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none}
+thead th:hover{color:var(--accent)}
+thead th.no-sort{cursor:default}
+thead th.no-sort:hover{color:var(--text2)}
+tbody td{padding:6px 10px;border-bottom:1px solid rgba(54,59,78,.4);white-space:nowrap}
+tbody tr{transition:background .1s}
+tbody tr:hover{background:rgba(108,140,255,.06)}
+tbody tr.zero-row{opacity:.4}
+tbody tr.zero-row:hover{opacity:.7}
+tbody tr.totals-row{background:var(--surface2);font-weight:700;border-top:2px solid var(--accent)}
+tbody tr.totals-row td{padding:8px 10px}
+td.fte{font-weight:700;color:var(--green)}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+.wf-internal{border-left:3px solid var(--accent)}
+.wf-con-india{border-left:3px solid var(--teal)}
+.wf-probe-india{border-left:3px solid var(--purple)}
+.wf-alms-india{border-left:3px solid var(--pink)}
+.wf-con-latam{border-left:3px solid var(--orange)}
+.wf-sutherland-india{border-left:3px solid var(--yellow)}
+.wf-foundever-latam{border-left:3px solid var(--red)}
+.wf-foundever-us{border-left:3px solid #60a5fa}
+.wf-exl-india{border-left:3px solid #a3e635}
+.wf-badge{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:500}
+.wf-badge.internal{background:rgba(108,140,255,.15);color:var(--accent)}
+.wf-badge.external{background:rgba(45,212,191,.12);color:var(--teal)}
+.pivot-table{margin:16px 24px;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.pivot-table table{width:100%}
+.pivot-table thead th{background:var(--surface3);font-size:10px;cursor:default}
+.pivot-table thead th:hover{color:var(--text2)}
+.pivot-table tbody td{text-align:right;font-variant-numeric:tabular-nums}
+.pivot-table tbody td:first-child{text-align:left;font-weight:600}
+.pivot-table tbody tr.totals-row{background:var(--surface3)}
+.pivot-title{font-size:14px;font-weight:600;margin:20px 24px 0;color:var(--text)}
+.section-hidden{display:none}
+/* Hierarchical table styles */
+.hier-table{margin:16px 24px;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.hier-table table{width:100%}
+.hier-table thead th{background:var(--surface3);font-size:10px;padding:8px 10px;text-align:left;font-weight:600;text-transform:uppercase;letter-spacing:.3px;color:var(--text2);border-bottom:2px solid var(--border);white-space:nowrap;cursor:default}
+.hier-table thead th:hover{color:var(--text2)}
+.hier-table thead th.num-col{text-align:right}
+.hier-table tbody td{padding:7px 10px;border-bottom:1px solid rgba(54,59,78,.3);white-space:nowrap;font-variant-numeric:tabular-nums;font-size:11px}
+.hier-table tbody td.num-cell{text-align:right}
+.hier-table tbody td.name-cell{text-align:left}
+/* Level 1 - Vertical */
+.hier-table tr.level-1{background:var(--surface3);cursor:pointer}
+.hier-table tr.level-1:hover{background:rgba(108,140,255,.1)}
+.hier-table tr.level-1 td{font-weight:700;font-size:12px;padding:9px 10px;border-bottom:1px solid var(--border)}
+.hier-table tr.level-1 td.num-cell{color:var(--green)}
+/* Level 2 - Queue */
+.hier-table tr.level-2{background:var(--surface2);cursor:pointer}
+.hier-table tr.level-2:hover{background:rgba(108,140,255,.07)}
+.hier-table tr.level-2 td{font-weight:600;font-size:11px;color:var(--text);padding:7px 10px}
+.hier-table tr.level-2 td.num-cell{color:var(--text)}
+/* Level 3 - Workforce Type */
+.hier-table tr.level-3{background:var(--bg)}
+.hier-table tr.level-3:hover{background:rgba(108,140,255,.04)}
+.hier-table tr.level-3 td{font-weight:400;font-size:11px;color:var(--text2)}
+.hier-table tr.level-3 td.num-cell{color:var(--text2)}
+/* Grand total */
+.hier-table tr.hier-total{background:var(--surface3);border-top:2px solid var(--accent)}
+.hier-table tr.hier-total td{font-weight:700;font-size:12px;padding:10px 10px;color:var(--green)}
+.hier-table tr.hier-total td.name-cell{color:var(--text)}
+/* Toggle arrow */
+.toggle-arrow{display:inline-block;width:16px;font-size:10px;color:var(--text3);transition:transform .15s;flex-shrink:0}
+.hier-hidden{display:none}
+/* Indent helpers */
+.indent-1{padding-left:14px !important}
+.indent-2{padding-left:34px !important}
+.indent-3{padding-left:54px !important}
+.hier-name-wrap{display:flex;align-items:center;gap:4px}
+.wf-dot{display:inline-block;width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:2000;display:flex;align-items:center;justify-content:center}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;max-width:520px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 16px 48px rgba(0,0,0,.5)}
+.modal h3{font-size:14px;margin-bottom:4px}
+.modal .queue-name{font-size:12px;color:var(--text2);margin-bottom:16px}
+.modal .calc-step{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px}
+.modal .calc-step .label{color:var(--text2)}
+.modal .calc-step .value{font-weight:600;font-variant-numeric:tabular-nums}
+.modal .calc-step.final{border-bottom:none;border-top:2px solid var(--accent);margin-top:4px;padding-top:12px}
+.modal .calc-step.final .value{color:var(--green);font-size:14px}
+.modal .formula{font-size:10px;color:var(--text3);font-style:italic;margin-top:2px}
+.modal-close{position:absolute;top:12px;right:16px;background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer}
+.modal-close:hover{color:var(--text)}
+.modal-wrapper{position:relative}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:var(--border)}
+/* Hours by Workforce multi-section headers */
+.hrs-table{margin:16px 24px;border:1px solid var(--border);border-radius:8px;overflow:auto}
+.hrs-table table{width:100%;border-collapse:collapse;font-size:11px}
+.hrs-table thead tr.section-header th{background:var(--surface3);text-align:center;font-weight:700;font-size:11px;padding:8px 6px;border-bottom:1px solid var(--border);color:var(--text);letter-spacing:.3px}
+.hrs-table thead tr.section-header th.section-prod{background:rgba(108,140,255,.15);color:var(--accent)}
+.hrs-table thead tr.section-header th.section-shrink{background:rgba(251,191,36,.12);color:var(--yellow)}
+.hrs-table thead tr.section-header th.section-train{background:rgba(167,139,250,.12);color:var(--purple)}
+.hrs-table thead tr.section-header th.section-total{background:rgba(52,211,153,.12);color:var(--green)}
+.hrs-table thead tr.month-header th{background:var(--surface2);text-align:right;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.3px;color:var(--text2);padding:6px 8px;border-bottom:2px solid var(--border);white-space:nowrap}
+.hrs-table thead tr.month-header th.name-hdr{text-align:left}
+.hrs-table thead tr.section-header th.name-hdr{text-align:left;background:var(--surface3);color:var(--text2)}
+.hrs-table tbody td{padding:6px 8px;border-bottom:1px solid rgba(54,59,78,.3);white-space:nowrap;font-variant-numeric:tabular-nums;font-size:11px;text-align:right}
+.hrs-table tbody td.hrs-name{text-align:left}
+.hrs-table tr.hrs-l1{background:var(--surface3);cursor:pointer}
+.hrs-table tr.hrs-l1:hover{background:rgba(108,140,255,.1)}
+.hrs-table tr.hrs-l1 td{font-weight:700;font-size:12px;padding:8px 8px;border-bottom:1px solid var(--border)}
+.hrs-table tr.hrs-l2{background:var(--surface2);cursor:pointer}
+.hrs-table tr.hrs-l2:hover{background:rgba(108,140,255,.07)}
+.hrs-table tr.hrs-l2 td{font-weight:600;font-size:11px;padding:6px 8px}
+.hrs-table tr.hrs-l3{background:var(--bg)}
+.hrs-table tr.hrs-l3:hover{background:rgba(108,140,255,.04)}
+.hrs-table tr.hrs-l3 td{font-weight:400;color:var(--text2)}
+.hrs-table tr.hrs-grand{background:var(--surface3);border-top:2px solid var(--accent)}
+.hrs-table tr.hrs-grand td{font-weight:700;font-size:12px;padding:10px 8px;color:var(--green)}
+.hrs-table tr.hrs-grand td.hrs-name{color:var(--text)}
+.hrs-table .prod-col{color:var(--accent) !important}
+.hrs-table .shrink-col{color:var(--yellow) !important}
+.hrs-table .train-col{color:var(--purple) !important}
+.hrs-table .total-col{color:var(--green) !important}
+.hrs-table .section-divider{border-left:2px solid var(--border)}
+#loadBtn{background:var(--accent2);border-color:var(--accent);color:#fff}
+#loadBtn:hover{background:var(--accent)}
+#refreshBtn{background:var(--surface2);border-color:var(--yellow);color:var(--yellow)}
+#refreshBtn:hover{background:rgba(251,191,36,.12)}
+#fileStatus{font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Version History */
+.version-table{margin:16px 24px;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.version-table table{width:100%;border-collapse:collapse;font-size:12px}
+.version-table thead th{background:var(--surface3);padding:10px 14px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--text2);border-bottom:2px solid var(--border);white-space:nowrap}
+.version-table tbody td{padding:8px 14px;border-bottom:1px solid rgba(54,59,78,.3);white-space:nowrap}
+.version-table tbody tr:hover{background:rgba(108,140,255,.06)}
+.version-table tbody td.date-col{color:var(--accent);font-weight:600}
+.version-table tbody td.action-col{font-weight:500}
+.version-table tbody td.notes-col{white-space:normal;max-width:400px;color:var(--text2)}
+.version-table .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600}
+.version-table .badge-create{background:rgba(52,211,153,.15);color:var(--green)}
+.version-table .badge-update{background:rgba(108,140,255,.15);color:var(--accent)}
+.version-table .badge-delete{background:rgba(248,113,113,.15);color:var(--red)}
+.version-table .badge-other{background:rgba(155,161,183,.15);color:var(--text2)}
+.version-empty{text-align:center;padding:40px;color:var(--text3);font-size:14px}
+</style>
+  <script type="application/ld+json">
+{
+  "@context": "urn:goose.ai:schema",
+  "@type": "GooseApp",
+  "name": "kitchenette-fte-calculator",
+  "description": "Staffing/FTE calculator for Risk Operations workforce planning across 10 verticals",
+  "width": 1400,
+  "height": 900,
+  "resizable": true,
+  "mcpServers": [
+    "apps"
+  ]
+}
+  </script>
+  <script type="application/x-goose-prd">
+## Kitchenette — Staffing / FTE Calculator
+
+### Overview
+A comprehensive, single-file web application for workforce planning and FTE calculation across Risk Operations verticals. All data is embedded as JavaScript objects with no external dependencies.
+
+### Calculation Chain
+1. **Monthly Volume** = Avg Volume × Working Days
+2. **Total Work (hrs)** = Monthly Volume × AHT / 3600 / Occupancy
+3. **Prod Hrs** = Workload% × Total Work
+4. **Shrink Hrs** = (Shrink / (1 - Shrink)) × Prod Hrs
+   - "Internal" workforce → Shrink Internal rate
+   - All other workforce types → Shrink External rate
+5. **Total Hrs** = Prod Hrs + Shrink Hrs
+6. **FTE** = Total Hrs / 8 / Working Days
+
+### Data Sources (Embedded)
+- **Calendar**: Working days per month (Apr–Dec)
+- **Shrink Sheet**: Occupancy, shrink internal, shrink external rates per vertical per month
+- **Workload Sheet**: AHT and avg volume per vertical/queue per month
+- **Workload % Sheet**: Workforce type allocation percentages per vertical/queue per month
+
+### Verticals (10)
+Afterpay, ATO, Appeals, Banking, BIT, Disputes, Foundations, I & C, Scam, Square
+
+### Workforce Types (9)
+Internal, Con - India, Con - Latam, Probe - India, ALMS - India, Sutherland - India, Foundever - Latam, Foundever - US, EXL - India
+
+### UI Design
+- **Theme**: Dark professional with gradient header
+- **Header**: App title, subtitle, row count indicator, CSV export button
+- **Filter Bar**: Sticky, with 4 multi-select dropdowns (Vertical, Queue, Workforce Type, Month), each with "Select All" toggle
+- **Queue Filter**: Dynamically filtered based on selected verticals
+
+### Tabs
+1. **Detail Table**: Full row-level data with all 16 calculation columns, sortable headers, clickable rows for calculation breakdown modal, totals row, zero-volume rows grayed out, color-coded workforce type badges and left borders, max 2000 rows rendered with notice
+2. **FTE by Vertical**: 3-level hierarchical collapsible table (Vertical → Queue → Workforce Type) with month columns and totals, expand/collapse arrows, grand total row
+3. **FTE by Workforce**: Flat pivot table showing FTE by workforce type × month with totals
+
+### Interactive Features
+- Multi-select filter dropdowns with Select All toggle
+- Column sorting on detail table (ascending/descending)
+- Calculation breakdown modal on row click
+- Hierarchical expand/collapse on FTE by Vertical tab
+- CSV export of filtered data
+- Row count indicator
+
+### Critical Rules
+- Shrink rate selection based on workforce type (Internal vs External)
+- Zero AHT or zero volume → all downstream calculations = 0
+- Shrink rate of 1 → shrink hours = 0 (division by zero protection)
+- Working days of 0 → FTE = 0
+  </script>
+</head>
+<body>
+<div class="header">
+  <div>
+    <h1>Kitchenette — Staffing / FTE Calculator</h1>
+    <div class="subtitle">Risk Operations Workforce Planning Model</div>
+  </div>
+  <div class="header-right">
+    <span class="row-count" id="rowCount">Showing 0 of 0 rows</span>
+    <span class="row-count" id="fileStatus" style="color:var(--text3)">No file loaded</span>
+    <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none">
+    <button class="btn" id="loadBtn">📂 Load Excel</button>
+    <button class="btn" id="refreshBtn" style="display:none">🔄 Refresh</button>
+    <button class="btn btn-accent" id="exportBtn">⬇ Export CSV</button>
+  </div>
+</div>
+<div class="filter-bar">
+  <div class="filter-group">
+    <label>Vertical</label>
+    <button class="filter-btn" id="verticalBtn">All Verticals</button>
+    <div class="dropdown" id="verticalDd"></div>
+  </div>
+  <div class="filter-group">
+    <label>Queue</label>
+    <button class="filter-btn" id="queueBtn">All Queues</button>
+    <div class="dropdown" id="queueDd"></div>
+  </div>
+  <div class="filter-group">
+    <label>Workforce Type</label>
+    <button class="filter-btn" id="wfBtn">All Types</button>
+    <div class="dropdown" id="wfDd"></div>
+  </div>
+  <div class="filter-group">
+    <label>Month</label>
+    <button class="filter-btn" id="monthBtn">All Months</button>
+    <div class="dropdown" id="monthDd"></div>
+  </div>
+</div>
+<div class="tabs">
+  <div class="tab active" data-tab="detail">Detail Table</div>
+  <div class="tab" data-tab="pivotVertical">FTE by Vertical</div>
+  <div class="tab" data-tab="pivotVerticalNoQueues">FTE by Vertical (No Queues)</div>
+  <div class="tab" data-tab="pivotWf">FTE by Workforce</div>
+  <div class="tab" data-tab="hrsByWf">Hours by Workforce</div>
+  <div class="tab" data-tab="versionHistory">Version History</div>
+</div>
+<div class="content" id="content">
+  <div id="detailSection" class="table-wrap">
+    <table id="mainTable">
+      <thead><tr id="mainHead"></tr></thead>
+      <tbody id="mainBody"></tbody>
+    </table>
+  </div>
+  <div id="pivotVerticalSection" class="section-hidden"></div>
+  <div id="pivotVerticalNoQueuesSection" class="section-hidden"></div>
+  <div id="pivotWfSection" class="section-hidden"></div>
+  <div id="hrsByWfSection" class="section-hidden"></div>
+  <div id="versionHistorySection" class="section-hidden"></div>
+</div>
+<div id="modalContainer"></div>
+
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script>
+// ===== MONTH MAPPING =====
+const monthMap = {January:'Jan',February:'Feb',March:'Mar',April:'Apr',May:'May',June:'Jun',July:'Jul',August:'Aug',September:'Sep',October:'Oct',November:'Nov',December:'Dec'};
+const shortMonthMap = {Jan:'Jan',Feb:'Feb',Mar:'Mar',Apr:'Apr',May:'May',Jun:'Jun',Jul:'Jul',Aug:'Aug',Sep:'Sep',Oct:'Oct',Nov:'Nov',Dec:'Dec'};
+
+// ===== MUTABLE DATA =====
+let months = ["Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+let workingDays = {"Apr":30,"May":30,"Jun":29,"Jul":30,"Aug":31,"Sep":29,"Oct":30,"Nov":28,"Dec":30};
+
+let shrinkData = {"ATO":{"occupancy":{"Apr":1,"May":1,"Jun":1,"Jul":1,"Aug":1,"Sep":1,"Oct":1,"Nov":1,"Dec":1},"shrinkInternal":{"Apr":0.3,"May":0.3,"Jun":0.3,"Jul":0.3,"Aug":0.3,"Sep":0.3,"Oct":0.3,"Nov":0.3,"Dec":0.3},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}},"Afterpay":{"occupancy":{"Apr":1,"May":1,"Jun":1,"Jul":1,"Aug":1,"Sep":1,"Oct":1,"Nov":1,"Dec":1},"shrinkInternal":{"Apr":0.3,"May":0.3,"Jun":0.3,"Jul":0.3,"Aug":0.3,"Sep":0.3,"Oct":0.3,"Nov":0.3,"Dec":0.3},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}},"Appeals":{"occupancy":{"Apr":1,"May":1,"Jun":1,"Jul":1,"Aug":1,"Sep":1,"Oct":1,"Nov":1,"Dec":1},"shrinkInternal":{"Apr":0.3,"May":0.3,"Jun":0.3,"Jul":0.3,"Aug":0.3,"Sep":0.3,"Oct":0.3,"Nov":0.3,"Dec":0.3},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}},"Banking":{"occupancy":{"Apr":1,"May":1,"Jun":1,"Jul":1,"Aug":1,"Sep":1,"Oct":1,"Nov":1,"Dec":1},"shrinkInternal":{"Apr":0.3,"May":0.3,"Jun":0.3,"Jul":0.3,"Aug":0.3,"Sep":0.3,"Oct":0.3,"Nov":0.3,"Dec":0.3},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}},"BIT":{"occupancy":{"Apr":1,"May":1,"Jun":1,"Jul":1,"Aug":1,"Sep":1,"Oct":1,"Nov":1,"Dec":1},"shrinkInternal":{"Apr":0.35,"May":0.35,"Jun":0.35,"Jul":0.35,"Aug":0.35,"Sep":0.35,"Oct":0.35,"Nov":0.35,"Dec":0.35},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}},"Disputes":{"occupancy":{"Apr":1,"May":1,"Jun":1,"Jul":1,"Aug":1,"Sep":1,"Oct":1,"Nov":1,"Dec":1},"shrinkInternal":{"Apr":0.3,"May":0.3,"Jun":0.3,"Jul":0.3,"Aug":0.3,"Sep":0.3,"Oct":0.3,"Nov":0.3,"Dec":0.3},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}},"Foundations":{"occupancy":{"Apr":1,"May":1,"Jun":1,"Jul":1,"Aug":1,"Sep":1,"Oct":1,"Nov":1,"Dec":1},"shrinkInternal":{"Apr":0.35,"May":0.35,"Jun":0.35,"Jul":0.35,"Aug":0.35,"Sep":0.35,"Oct":0.35,"Nov":0.35,"Dec":0.35},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}},"I & C":{"occupancy":{"Apr":1,"May":1,"Jun":1,"Jul":1,"Aug":1,"Sep":1,"Oct":1,"Nov":1,"Dec":1},"shrinkInternal":{"Apr":0.3,"May":0.3,"Jun":0.3,"Jul":0.3,"Aug":0.3,"Sep":0.3,"Oct":0.3,"Nov":0.3,"Dec":0.3},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}},"Scam":{"occupancy":{"Apr":1,"May":1,"Jun":1,"Jul":1,"Aug":1,"Sep":1,"Oct":1,"Nov":1,"Dec":1},"shrinkInternal":{"Apr":0.3,"May":0.3,"Jun":0.3,"Jul":0.3,"Aug":0.3,"Sep":0.3,"Oct":0.3,"Nov":0.3,"Dec":0.3},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}},"Square":{"occupancy":{"Apr":1,"May":1,"Jun":1,"Jul":1,"Aug":1,"Sep":1,"Oct":1,"Nov":1,"Dec":1},"shrinkInternal":{"Apr":0.3,"May":0.3,"Jun":0.3,"Jul":0.3,"Aug":0.3,"Sep":0.3,"Oct":0.3,"Nov":0.3,"Dec":0.3},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}}};
+
+let workloadData = [{"vertical":"Afterpay","queue":"Risk - Support Ops / Investigations","aht":{"Apr":1286,"May":1286,"Jun":1286,"Jul":1286,"Aug":1286,"Sep":1286,"Oct":1286,"Nov":1286,"Dec":1286},"avgVolume":{"Apr":163,"May":163,"Jun":163,"Jul":163,"Aug":163,"Sep":163,"Oct":163,"Nov":163,"Dec":163}},{"vertical":"Afterpay","queue":"Risk Ops - Cards","aht":{"Apr":554,"May":554,"Jun":554,"Jul":554,"Aug":554,"Sep":554,"Oct":554,"Nov":554,"Dec":554},"avgVolume":{"Apr":1040,"May":1040,"Jun":1040,"Jul":1040,"Aug":1040,"Sep":1040,"Oct":1040,"Nov":1040,"Dec":1040}},{"vertical":"Afterpay","queue":"Risk Ops - Charge Backs","aht":{"Apr":544,"May":544,"Jun":544,"Jul":544,"Aug":544,"Sep":544,"Oct":544,"Nov":544,"Dec":544},"avgVolume":{"Apr":500,"May":500,"Jun":500,"Jul":500,"Aug":500,"Sep":500,"Oct":500,"Nov":500,"Dec":500}},{"vertical":"Afterpay","queue":"Risk Ops - Merchant Disputes","aht":{"Apr":296,"May":296,"Jun":296,"Jul":296,"Aug":296,"Sep":296,"Oct":296,"Nov":296,"Dec":296},"avgVolume":{"Apr":296,"May":296,"Jun":296,"Jul":296,"Aug":296,"Sep":296,"Oct":296,"Nov":296,"Dec":296}},{"vertical":"Afterpay","queue":"ANZ_Risk Ops - IDV","aht":{"Apr":774,"May":774,"Jun":774,"Jul":774,"Aug":774,"Sep":774,"Oct":774,"Nov":774,"Dec":774},"avgVolume":{"Apr":865,"May":865,"Jun":865,"Jul":865,"Aug":865,"Sep":865,"Oct":865,"Nov":865,"Dec":865}},{"vertical":"Afterpay","queue":"NA_Risk Ops - IDV","aht":{"Apr":805,"May":805,"Jun":805,"Jul":805,"Aug":805,"Sep":805,"Oct":805,"Nov":805,"Dec":805},"avgVolume":{"Apr":337,"May":337,"Jun":337,"Jul":337,"Aug":337,"Sep":337,"Oct":337,"Nov":337,"Dec":337}},{"vertical":"Afterpay","queue":"UK_Risk Ops - IDV","aht":{"Apr":693,"May":693,"Jun":693,"Jul":693,"Aug":693,"Sep":693,"Oct":693,"Nov":693,"Dec":693},"avgVolume":{"Apr":624,"May":624,"Jun":624,"Jul":624,"Aug":624,"Sep":624,"Oct":624,"Nov":624,"Dec":624}},{"vertical":"ATO","queue":"ATO Locks","aht":{"Apr":514,"May":514,"Jun":514,"Jul":514,"Aug":514,"Sep":514,"Oct":514,"Nov":514,"Dec":514},"avgVolume":{"Apr":1081,"May":1081,"Jun":1081,"Jul":1081,"Aug":1081,"Sep":1081,"Oct":1081,"Nov":1081,"Dec":1081}},{"vertical":"ATO","queue":"Self-Reported","aht":{"Apr":750,"May":750,"Jun":750,"Jul":750,"Aug":750,"Sep":750,"Oct":750,"Nov":750,"Dec":750},"avgVolume":{"Apr":1637,"May":1637,"Jun":1637,"Jul":1637,"Aug":1637,"Sep":1637,"Oct":1637,"Nov":1637,"Dec":1637}},{"vertical":"ATO","queue":"ATO ACAP","aht":{"Apr":750,"May":750,"Jun":750,"Jul":750,"Aug":750,"Sep":750,"Oct":750,"Nov":750,"Dec":750},"avgVolume":{"Apr":12,"May":12,"Jun":12,"Jul":12,"Aug":12,"Sep":12,"Oct":12,"Nov":12,"Dec":12}},{"vertical":"ATO","queue":"ATO Brokerage & Lending","aht":{"Apr":750,"May":750,"Jun":750,"Jul":750,"Aug":750,"Sep":750,"Oct":750,"Nov":750,"Dec":750},"avgVolume":{"Apr":71,"May":71,"Jun":71,"Jul":71,"Aug":71,"Sep":71,"Oct":71,"Nov":71,"Dec":71}},{"vertical":"Appeals","queue":"Account Handover","aht":{"Apr":379,"May":379,"Jun":379,"Jul":379,"Aug":379,"Sep":379,"Oct":379,"Nov":379,"Dec":379},"avgVolume":{"Apr":6,"May":6,"Jun":6,"Jul":6,"Aug":6,"Sep":6,"Oct":6,"Nov":6,"Dec":6}},{"vertical":"Appeals","queue":"Chargebacks","aht":{"Apr":379,"May":379,"Jun":379,"Jul":379,"Aug":379,"Sep":379,"Oct":379,"Nov":379,"Dec":379},"avgVolume":{"Apr":38,"May":38,"Jun":38,"Jul":38,"Aug":38,"Sep":38,"Oct":38,"Nov":38,"Dec":38}},{"vertical":"Appeals","queue":"Denylist L2","aht":{"Apr":709,"May":709,"Jun":709,"Jul":709,"Aug":709,"Sep":709,"Oct":709,"Nov":709,"Dec":709},"avgVolume":{"Apr":71,"May":71,"Jun":71,"Jul":71,"Aug":71,"Sep":71,"Oct":71,"Nov":71,"Dec":71}},{"vertical":"Appeals","queue":"Device attestation failed","aht":{"Apr":379,"May":379,"Jun":379,"Jul":379,"Aug":379,"Sep":379,"Oct":379,"Nov":379,"Dec":379},"avgVolume":{"Apr":6,"May":6,"Jun":6,"Jul":6,"Aug":6,"Sep":6,"Oct":6,"Nov":6,"Dec":6}},{"vertical":"Appeals","queue":"Dispute Abuse","aht":{"Apr":379,"May":379,"Jun":379,"Jul":379,"Aug":379,"Sep":379,"Oct":379,"Nov":379,"Dec":379},"avgVolume":{"Apr":269,"May":269,"Jun":269,"Jul":269,"Aug":269,"Sep":269,"Oct":269,"Nov":269,"Dec":269}},{"vertical":"Appeals","queue":"Fraud","aht":{"Apr":379,"May":379,"Jun":379,"Jul":379,"Aug":379,"Sep":379,"Oct":379,"Nov":379,"Dec":379},"avgVolume":{"Apr":169,"May":169,"Jun":169,"Jul":169,"Aug":169,"Sep":169,"Oct":169,"Nov":169,"Dec":169}},{"vertical":"Appeals","queue":"IDV Failures","aht":{"Apr":379,"May":379,"Jun":379,"Jul":379,"Aug":379,"Sep":379,"Oct":379,"Nov":379,"Dec":379},"avgVolume":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Appeals","queue":"In-app Denylisting","aht":{"Apr":379,"May":379,"Jun":379,"Jul":379,"Aug":379,"Sep":379,"Oct":379,"Nov":379,"Dec":379},"avgVolume":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Appeals","queue":"Inauthentic account","aht":{"Apr":379,"May":379,"Jun":379,"Jul":379,"Aug":379,"Sep":379,"Oct":379,"Nov":379,"Dec":379},"avgVolume":{"Apr":172,"May":172,"Jun":172,"Jul":172,"Aug":172,"Sep":172,"Oct":172,"Nov":172,"Dec":172}},{"vertical":"Appeals","queue":"Other","aht":{"Apr":379,"May":379,"Jun":379,"Jul":379,"Aug":379,"Sep":379,"Oct":379,"Nov":379,"Dec":379},"avgVolume":{"Apr":13,"May":13,"Jun":13,"Jul":13,"Aug":13,"Sep":13,"Oct":13,"Nov":13,"Dec":13}},{"vertical":"Appeals","queue":"Scam","aht":{"Apr":379,"May":379,"Jun":379,"Jul":379,"Aug":379,"Sep":379,"Oct":379,"Nov":379,"Dec":379},"avgVolume":{"Apr":281,"May":281,"Jun":281,"Jul":281,"Aug":281,"Sep":281,"Oct":281,"Nov":281,"Dec":281}},{"vertical":"Appeals","queue":"Scam Denylist L2","aht":{"Apr":709,"May":709,"Jun":709,"Jul":709,"Aug":709,"Sep":709,"Oct":709,"Nov":709,"Dec":709},"avgVolume":{"Apr":31,"May":31,"Jun":31,"Jul":31,"Aug":31,"Sep":31,"Oct":31,"Nov":31,"Dec":31}},{"vertical":"Appeals","queue":"SSN","aht":{"Apr":379,"May":379,"Jun":379,"Jul":379,"Aug":379,"Sep":379,"Oct":379,"Nov":379,"Dec":379},"avgVolume":{"Apr":138,"May":138,"Jun":138,"Jul":138,"Aug":138,"Sep":138,"Oct":138,"Nov":138,"Dec":138}},{"vertical":"Appeals","queue":"CompL1","aht":{"Apr":379,"May":379,"Jun":379,"Jul":379,"Aug":379,"Sep":379,"Oct":379,"Nov":379,"Dec":379},"avgVolume":{"Apr":3141,"May":3141,"Jun":3141,"Jul":3141,"Aug":3141,"Sep":3141,"Oct":3141,"Nov":3141,"Dec":3141}},{"vertical":"Appeals","queue":"Comp L2","aht":{"Apr":709,"May":709,"Jun":709,"Jul":709,"Aug":709,"Sep":709,"Oct":709,"Nov":709,"Dec":709},"avgVolume":{"Apr":167,"May":167,"Jun":167,"Jul":167,"Aug":167,"Sep":167,"Oct":167,"Nov":167,"Dec":167}},{"vertical":"Appeals","queue":"Proctive L1","aht":{"Apr":379,"May":379,"Jun":379,"Jul":379,"Aug":379,"Sep":379,"Oct":379,"Nov":379,"Dec":379},"avgVolume":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Appeals","queue":"Proactive L2","aht":{"Apr":709,"May":709,"Jun":709,"Jul":709,"Aug":709,"Sep":709,"Oct":709,"Nov":709,"Dec":709},"avgVolume":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Appeals","queue":"IDV Failures L2","aht":{"Apr":709,"May":709,"Jun":709,"Jul":709,"Aug":709,"Sep":709,"Oct":709,"Nov":709,"Dec":709},"avgVolume":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Banking","queue":"CF1 Cx queue","aht":{"Apr":85,"May":85,"Jun":85,"Jul":85,"Aug":85,"Sep":85,"Oct":85,"Nov":85,"Dec":85},"avgVolume":{"Apr":76,"May":76,"Jun":76,"Jul":76,"Aug":76,"Sep":76,"Oct":76,"Nov":76,"Dec":76}},{"vertical":"Banking","queue":"Cash Card Suspension","aht":{"Apr":164,"May":164,"Jun":164,"Jul":164,"Aug":164,"Sep":164,"Oct":164,"Nov":164,"Dec":164},"avgVolume":{"Apr":294,"May":294,"Jun":294,"Jul":294,"Aug":294,"Sep":294,"Oct":294,"Nov":294,"Dec":294}},{"vertical":"Banking","queue":"DANs","aht":{"Apr":420,"May":420,"Jun":420,"Jul":420,"Aug":420,"Sep":420,"Oct":420,"Nov":420,"Dec":420},"avgVolume":{"Apr":83,"May":83,"Jun":83,"Jul":83,"Aug":83,"Sep":83,"Oct":83,"Nov":83,"Dec":83}},{"vertical":"Banking","queue":"Fraud","aht":{"Apr":420,"May":420,"Jun":420,"Jul":420,"Aug":420,"Sep":420,"Oct":420,"Nov":420,"Dec":420},"avgVolume":{"Apr":354,"May":354,"Jun":354,"Jul":354,"Aug":354,"Sep":354,"Oct":354,"Nov":354,"Dec":354}},{"vertical":"Banking","queue":"LabelBox","aht":{"Apr":180,"May":180,"Jun":180,"Jul":180,"Aug":180,"Sep":180,"Oct":180,"Nov":180,"Dec":180},"avgVolume":{"Apr":215,"May":215,"Jun":215,"Jul":215,"Aug":215,"Sep":215,"Oct":215,"Nov":215,"Dec":215}},{"vertical":"Banking","queue":"ML Review","aht":{"Apr":105,"May":105,"Jun":105,"Jul":105,"Aug":105,"Sep":105,"Oct":105,"Nov":105,"Dec":105},"avgVolume":{"Apr":695,"May":695,"Jun":695,"Jul":695,"Aug":695,"Sep":695,"Oct":695,"Nov":695,"Dec":695}},{"vertical":"Banking","queue":"Mobile Check Reviews","aht":{"Apr":120,"May":120,"Jun":120,"Jul":120,"Aug":120,"Sep":120,"Oct":120,"Nov":120,"Dec":120},"avgVolume":{"Apr":1035,"May":1035,"Jun":1035,"Jul":1035,"Aug":1035,"Sep":1035,"Oct":1035,"Nov":1035,"Dec":1035}},{"vertical":"Banking","queue":"Returns","aht":{"Apr":327,"May":327,"Jun":327,"Jul":327,"Aug":327,"Sep":327,"Oct":327,"Nov":327,"Dec":327},"avgVolume":{"Apr":148,"May":148,"Jun":148,"Jul":148,"Aug":148,"Sep":148,"Oct":148,"Nov":148,"Dec":148}},{"vertical":"Banking","queue":"Risk Reviews","aht":{"Apr":324,"May":324,"Jun":324,"Jul":324,"Aug":324,"Sep":324,"Oct":324,"Nov":324,"Dec":324},"avgVolume":{"Apr":99,"May":99,"Jun":99,"Jul":99,"Aug":99,"Sep":99,"Oct":99,"Nov":99,"Dec":99}},{"vertical":"Banking","queue":"Verification Calls","aht":{"Apr":360,"May":360,"Jun":360,"Jul":360,"Aug":360,"Sep":360,"Oct":360,"Nov":360,"Dec":360},"avgVolume":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"BIT","queue":"BIT - ACH","aht":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0},"avgVolume":{"Apr":107,"May":133,"Jun":110,"Jul":107,"Aug":129,"Sep":110,"Oct":107,"Nov":143,"Dec":107}},{"vertical":"BIT","queue":"BIT - CAC","aht":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0},"avgVolume":{"Apr":80,"May":100,"Jun":83,"Jul":80,"Aug":97,"Sep":83,"Oct":80,"Nov":107,"Dec":80}},{"vertical":"BIT","queue":"BIT - Non-Core","aht":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0},"avgVolume":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"BIT","queue":"BIT - UI","aht":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0},"avgVolume":{"Apr":67,"May":83,"Jun":69,"Jul":67,"Aug":81,"Sep":69,"Oct":67,"Nov":89,"Dec":67}},{"vertical":"Disputes","queue":"Remediation","aht":{"Apr":1800,"May":1800,"Jun":1800,"Jul":1800,"Aug":1800,"Sep":1800,"Oct":1800,"Nov":1800,"Dec":1800},"avgVolume":{"Apr":0,"May":360,"Jun":360,"Jul":360,"Aug":360,"Sep":360,"Oct":360,"Nov":360,"Dec":360}},{"vertical":"Disputes","queue":"Appeals","aht":{"Apr":745,"May":745,"Jun":745,"Jul":745,"Aug":745,"Sep":745,"Oct":745,"Nov":745,"Dec":745},"avgVolume":{"Apr":1895,"May":1895,"Jun":1895,"Jul":1895,"Aug":1895,"Sep":1895,"Oct":1895,"Nov":1895,"Dec":1895}},{"vertical":"Disputes","queue":"Dispute Group 1","aht":{"Apr":431,"May":431,"Jun":431,"Jul":431,"Aug":431,"Sep":431,"Oct":431,"Nov":431,"Dec":431},"avgVolume":{"Apr":6767,"May":6767,"Jun":6767,"Jul":6767,"Aug":6767,"Sep":6767,"Oct":6767,"Nov":6767,"Dec":6767}},{"vertical":"Disputes","queue":"Dispute Group 2","aht":{"Apr":288,"May":288,"Jun":288,"Jul":288,"Aug":288,"Sep":288,"Oct":288,"Nov":288,"Dec":288},"avgVolume":{"Apr":4737,"May":4737,"Jun":4737,"Jul":4737,"Aug":4737,"Sep":4737,"Oct":4737,"Nov":4737,"Dec":4737}},{"vertical":"Disputes","queue":"Dispute Group 3","aht":{"Apr":445,"May":445,"Jun":445,"Jul":445,"Aug":445,"Sep":445,"Oct":445,"Nov":445,"Dec":445},"avgVolume":{"Apr":3383,"May":3383,"Jun":3383,"Jul":3383,"Aug":3383,"Sep":3383,"Oct":3383,"Nov":3383,"Dec":3383}},{"vertical":"Disputes","queue":"Dispute Group 4","aht":{"Apr":1091,"May":1091,"Jun":1091,"Jul":1091,"Aug":1091,"Sep":1091,"Oct":1091,"Nov":1091,"Dec":1091},"avgVolume":{"Apr":51,"May":51,"Jun":51,"Jul":51,"Aug":51,"Sep":51,"Oct":51,"Nov":51,"Dec":51}},{"vertical":"Disputes","queue":"Dispute Group 5","aht":{"Apr":590,"May":590,"Jun":590,"Jul":590,"Aug":590,"Sep":590,"Oct":590,"Nov":590,"Dec":590},"avgVolume":{"Apr":186,"May":186,"Jun":186,"Jul":186,"Aug":186,"Sep":186,"Oct":186,"Nov":186,"Dec":186}},{"vertical":"Disputes","queue":"Dispute Group 6","aht":{"Apr":590,"May":590,"Jun":590,"Jul":590,"Aug":590,"Sep":590,"Oct":590,"Nov":590,"Dec":590},"avgVolume":{"Apr":474,"May":474,"Jun":474,"Jul":474,"Aug":474,"Sep":474,"Oct":474,"Nov":474,"Dec":474}},{"vertical":"Disputes","queue":"Dispute Group 7","aht":{"Apr":750,"May":750,"Jun":750,"Jul":750,"Aug":750,"Sep":750,"Oct":750,"Nov":750,"Dec":750},"avgVolume":{"Apr":508,"May":508,"Jun":508,"Jul":508,"Aug":508,"Sep":508,"Oct":508,"Nov":508,"Dec":508}},{"vertical":"Foundations","queue":"CAP","aht":{"Apr":600,"May":600,"Jun":600,"Jul":600,"Aug":600,"Sep":600,"Oct":600,"Nov":600,"Dec":600},"avgVolume":{"Apr":1053,"May":1053,"Jun":1053,"Jul":1053,"Aug":1053,"Sep":1053,"Oct":1053,"Nov":1053,"Dec":1053}},{"vertical":"Foundations","queue":"Cash-in blocks","aht":{"Apr":600,"May":600,"Jun":600,"Jul":600,"Aug":600,"Sep":600,"Oct":600,"Nov":600,"Dec":600},"avgVolume":{"Apr":147,"May":147,"Jun":147,"Jul":147,"Aug":147,"Sep":147,"Oct":147,"Nov":147,"Dec":147}},{"vertical":"Foundations","queue":"dIDV","aht":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0},"avgVolume":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Foundations","queue":"Dispute Abuse","aht":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0},"avgVolume":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Foundations","queue":"eIDV","aht":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0},"avgVolume":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Foundations","queue":"Instrument","aht":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0},"avgVolume":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Foundations","queue":"ML ACH","aht":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0},"avgVolume":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Foundations","queue":"ML CCFR","aht":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0},"avgVolume":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Foundations","queue":"ML Gov Dep/UI","aht":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0},"avgVolume":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Foundations","queue":"P2P Blocks","aht":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0},"avgVolume":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Foundations","queue":"Referral Blocks","aht":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0},"avgVolume":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Foundations","queue":"Referral Payouts","aht":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0},"avgVolume":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Foundations","queue":"Wires","aht":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0},"avgVolume":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"I & C","queue":"CC Sigs","aht":{"Apr":21,"May":21,"Jun":21,"Jul":21,"Aug":21,"Sep":21,"Oct":21,"Nov":21,"Dec":21},"avgVolume":{"Apr":4834,"May":4834,"Jun":4834,"Jul":4834,"Aug":4834,"Sep":4834,"Oct":4834,"Nov":4834,"Dec":4834}},{"vertical":"I & C","queue":"dIDV","aht":{"Apr":51,"May":51,"Jun":51,"Jul":51,"Aug":51,"Sep":51,"Oct":51,"Nov":51,"Dec":51},"avgVolume":{"Apr":3935,"May":3935,"Jun":3935,"Jul":3935,"Aug":3935,"Sep":3935,"Oct":3935,"Nov":3935,"Dec":3935}},{"vertical":"I & C","queue":"Elder Abuse","aht":{"Apr":350,"May":350,"Jun":350,"Jul":350,"Aug":350,"Sep":350,"Oct":350,"Nov":350,"Dec":350},"avgVolume":{"Apr":1095,"May":1095,"Jun":1095,"Jul":1095,"Aug":1095,"Sep":1095,"Oct":1095,"Nov":1095,"Dec":1095}},{"vertical":"I & C","queue":"EV","aht":{"Apr":129,"May":129,"Jun":129,"Jul":129,"Aug":129,"Sep":129,"Oct":129,"Nov":129,"Dec":129},"avgVolume":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"I & C","queue":"EV Manual","aht":{"Apr":257,"May":257,"Jun":257,"Jul":257,"Aug":257,"Sep":257,"Oct":257,"Nov":257,"Dec":257},"avgVolume":{"Apr":2,"May":2,"Jun":2,"Jul":2,"Aug":2,"Sep":2,"Oct":2,"Nov":2,"Dec":2}},{"vertical":"I & C","queue":"IA Suspension","aht":{"Apr":277,"May":277,"Jun":277,"Jul":277,"Aug":277,"Sep":277,"Oct":277,"Nov":277,"Dec":277},"avgVolume":{"Apr":1447,"May":1447,"Jun":1447,"Jul":1447,"Aug":1447,"Sep":1447,"Oct":1447,"Nov":1447,"Dec":1447}},{"vertical":"I & C","queue":"ID Theft","aht":{"Apr":655,"May":655,"Jun":655,"Jul":655,"Aug":655,"Sep":655,"Oct":655,"Nov":655,"Dec":655},"avgVolume":{"Apr":136,"May":136,"Jun":136,"Jul":136,"Aug":136,"Sep":136,"Oct":136,"Nov":136,"Dec":136}},{"vertical":"I & C","queue":"LNC","aht":{"Apr":300,"May":300,"Jun":300,"Jul":300,"Aug":300,"Sep":300,"Oct":300,"Nov":300,"Dec":300},"avgVolume":{"Apr":743,"May":743,"Jun":743,"Jul":743,"Aug":743,"Sep":743,"Oct":743,"Nov":743,"Dec":743}},{"vertical":"I & C","queue":"mIDV","aht":{"Apr":90,"May":90,"Jun":90,"Jul":90,"Aug":90,"Sep":90,"Oct":90,"Nov":90,"Dec":90},"avgVolume":{"Apr":9,"May":9,"Jun":9,"Jul":9,"Aug":9,"Sep":9,"Oct":9,"Nov":9,"Dec":9}},{"vertical":"I & C","queue":"NPG","aht":{"Apr":450,"May":450,"Jun":450,"Jul":450,"Aug":450,"Sep":450,"Oct":450,"Nov":450,"Dec":450},"avgVolume":{"Apr":800,"May":800,"Jun":800,"Jul":800,"Aug":800,"Sep":800,"Oct":800,"Nov":800,"Dec":800}},{"vertical":"Scam","queue":"Scam Claims (High)","aht":{"Apr":269,"May":269,"Jun":269,"Jul":269,"Aug":269,"Sep":269,"Oct":269,"Nov":269,"Dec":269},"avgVolume":{"Apr":1023,"May":1023,"Jun":1023,"Jul":1023,"Aug":1023,"Sep":1023,"Oct":1023,"Nov":1023,"Dec":1023}},{"vertical":"Scam","queue":"Scam Claims (Low)","aht":{"Apr":57,"May":57,"Jun":57,"Jul":57,"Aug":57,"Sep":57,"Oct":57,"Nov":57,"Dec":57},"avgVolume":{"Apr":6581,"May":6581,"Jun":6581,"Jul":6581,"Aug":6581,"Sep":6581,"Oct":6581,"Nov":6581,"Dec":6581}},{"vertical":"Scam","queue":"Scam Claims (Mid)","aht":{"Apr":219,"May":219,"Jun":219,"Jul":219,"Aug":219,"Sep":219,"Oct":219,"Nov":219,"Dec":219},"avgVolume":{"Apr":980,"May":980,"Jun":980,"Jul":980,"Aug":980,"Sep":980,"Oct":980,"Nov":980,"Dec":980}},{"vertical":"Scam","queue":"Suspected Scams","aht":{"Apr":240,"May":240,"Jun":240,"Jul":240,"Aug":240,"Sep":240,"Oct":240,"Nov":240,"Dec":240},"avgVolume":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Scam","queue":"Suspended Scams","aht":{"Apr":247,"May":247,"Jun":247,"Jul":247,"Aug":247,"Sep":247,"Oct":247,"Nov":247,"Dec":247},"avgVolume":{"Apr":1216,"May":1216,"Jun":1216,"Jul":1216,"Aug":1216,"Sep":1216,"Oct":1216,"Nov":1216,"Dec":1216}},{"vertical":"Square","queue":"Afterpay","aht":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0},"avgVolume":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Square","queue":"Banking","aht":{"Apr":182,"May":195,"Jun":219,"Jul":205,"Aug":188,"Sep":203,"Oct":235,"Nov":232,"Dec":185},"avgVolume":{"Apr":422,"May":422,"Jun":422,"Jul":422,"Aug":422,"Sep":422,"Oct":422,"Nov":422,"Dec":422}},{"vertical":"Square","queue":"Credit Risk","aht":{"Apr":932,"May":857,"Jun":842,"Jul":816,"Aug":680,"Sep":682,"Oct":602,"Nov":607,"Dec":636},"avgVolume":{"Apr":141,"May":141,"Jun":141,"Jul":141,"Aug":141,"Sep":141,"Oct":141,"Nov":141,"Dec":141}},{"vertical":"Square","queue":"Disputes","aht":{"Apr":655,"May":650,"Jun":632,"Jul":541,"Aug":578,"Sep":655,"Oct":679,"Nov":647,"Dec":513},"avgVolume":{"Apr":307,"May":307,"Jun":307,"Jul":307,"Aug":307,"Sep":307,"Oct":307,"Nov":307,"Dec":307}},{"vertical":"Square","queue":"FAST (Fake Account, Scams)-Pay Acceptance","aht":{"Apr":587,"May":542,"Jun":509,"Jul":491,"Aug":498,"Sep":558,"Oct":527,"Nov":530,"Dec":526},"avgVolume":{"Apr":2719,"May":2719,"Jun":2719,"Jul":2719,"Aug":2719,"Sep":2719,"Oct":2719,"Nov":2719,"Dec":2719}},{"vertical":"Square","queue":"GAB (GMGB, ATO, BF)","aht":{"Apr":501,"May":541,"Jun":551,"Jul":560,"Aug":542,"Sep":536,"Oct":634,"Nov":581,"Dec":613},"avgVolume":{"Apr":103,"May":103,"Jun":103,"Jul":103,"Aug":103,"Sep":103,"Oct":103,"Nov":103,"Dec":103}},{"vertical":"Square","queue":"Recovery - Payroll/Product","aht":{"Apr":161,"May":161,"Jun":161,"Jul":161,"Aug":161,"Sep":161,"Oct":161,"Nov":161,"Dec":161},"avgVolume":{"Apr":161,"May":161,"Jun":161,"Jul":161,"Aug":161,"Sep":161,"Oct":161,"Nov":161,"Dec":161}}];
+
+let workloadPctData = [{"vertical":"Afterpay","queue":"Risk - Support Ops / Investigations","type":"Internal","pct":{"Apr":0.01,"May":0.01,"Jun":0.01,"Jul":0.01,"Aug":0.01,"Sep":0.01,"Oct":0.01,"Nov":0.01,"Dec":0.01}},{"vertical":"Afterpay","queue":"Risk - Support Ops / Investigations","type":"Con - India","pct":{"Apr":0,"May":0,"Jun":0.135,"Jul":0.27,"Aug":0.405,"Sep":0.54,"Oct":0.54,"Nov":0.54,"Dec":0.54}},{"vertical":"Afterpay","queue":"Risk - Support Ops / Investigations","type":"Probe - India","pct":{"Apr":0.731,"May":0.755,"Jun":0.855,"Jul":0.72,"Aug":0.585,"Sep":0.45,"Oct":0.45,"Nov":0.45,"Dec":0.45}},{"vertical":"Afterpay","queue":"Risk Ops - Cards","type":"Internal","pct":{"Apr":0.01,"May":0.01,"Jun":0.01,"Jul":0.01,"Aug":0.01,"Sep":0.01,"Oct":0.01,"Nov":0.01,"Dec":0.01}},{"vertical":"Afterpay","queue":"Risk Ops - Cards","type":"Con - India","pct":{"Apr":0,"May":0,"Jun":0.135,"Jul":0.27,"Aug":0.405,"Sep":0.54,"Oct":0.54,"Nov":0.54,"Dec":0.54}},{"vertical":"Afterpay","queue":"Risk Ops - Cards","type":"Probe - India","pct":{"Apr":0.731,"May":0.755,"Jun":0.855,"Jul":0.72,"Aug":0.585,"Sep":0.45,"Oct":0.45,"Nov":0.45,"Dec":0.45}},{"vertical":"Afterpay","queue":"Risk Ops - Charge Backs","type":"Internal","pct":{"Apr":0.01,"May":0.01,"Jun":0.01,"Jul":0.01,"Aug":0.01,"Sep":0.01,"Oct":0.01,"Nov":0.01,"Dec":0.01}},{"vertical":"Afterpay","queue":"Risk Ops - Charge Backs","type":"Con - India","pct":{"Apr":0,"May":0,"Jun":0.135,"Jul":0.27,"Aug":0.405,"Sep":0.54,"Oct":0.54,"Nov":0.54,"Dec":0.54}},{"vertical":"Afterpay","queue":"Risk Ops - Charge Backs","type":"Probe - India","pct":{"Apr":0.731,"May":0.755,"Jun":0.855,"Jul":0.72,"Aug":0.585,"Sep":0.45,"Oct":0.45,"Nov":0.45,"Dec":0.45}},{"vertical":"Afterpay","queue":"Risk Ops - Merchant Disputes","type":"Internal","pct":{"Apr":0.01,"May":0.01,"Jun":0.01,"Jul":0.01,"Aug":0.01,"Sep":0.01,"Oct":0.01,"Nov":0.01,"Dec":0.01}},{"vertical":"Afterpay","queue":"Risk Ops - Merchant Disputes","type":"Con - India","pct":{"Apr":0,"May":0,"Jun":0.135,"Jul":0.27,"Aug":0.405,"Sep":0.54,"Oct":0.54,"Nov":0.54,"Dec":0.54}},{"vertical":"Afterpay","queue":"Risk Ops - Merchant Disputes","type":"Probe - India","pct":{"Apr":0.731,"May":0.755,"Jun":0.855,"Jul":0.72,"Aug":0.585,"Sep":0.45,"Oct":0.45,"Nov":0.45,"Dec":0.45}},{"vertical":"Afterpay","queue":"ANZ_Risk Ops - IDV","type":"Internal","pct":{"Apr":0.01,"May":0.01,"Jun":0.01,"Jul":0.01,"Aug":0.01,"Sep":0.01,"Oct":0.01,"Nov":0.01,"Dec":0.01}},{"vertical":"Afterpay","queue":"ANZ_Risk Ops - IDV","type":"Con - India","pct":{"Apr":0,"May":0,"Jun":0.135,"Jul":0.27,"Aug":0.405,"Sep":0.54,"Oct":0.54,"Nov":0.54,"Dec":0.54}},{"vertical":"Afterpay","queue":"ANZ_Risk Ops - IDV","type":"Probe - India","pct":{"Apr":0.731,"May":0.755,"Jun":0.855,"Jul":0.72,"Aug":0.585,"Sep":0.45,"Oct":0.45,"Nov":0.45,"Dec":0.45}},{"vertical":"Afterpay","queue":"NA_Risk Ops - IDV","type":"Internal","pct":{"Apr":0.01,"May":0.01,"Jun":0.01,"Jul":0.01,"Aug":0.01,"Sep":0.01,"Oct":0.01,"Nov":0.01,"Dec":0.01}},{"vertical":"Afterpay","queue":"NA_Risk Ops - IDV","type":"Con - India","pct":{"Apr":0,"May":0,"Jun":0.135,"Jul":0.27,"Aug":0.405,"Sep":0.54,"Oct":0.54,"Nov":0.54,"Dec":0.54}},{"vertical":"Afterpay","queue":"NA_Risk Ops - IDV","type":"Probe - India","pct":{"Apr":0.731,"May":0.755,"Jun":0.855,"Jul":0.72,"Aug":0.585,"Sep":0.45,"Oct":0.45,"Nov":0.45,"Dec":0.45}},{"vertical":"Afterpay","queue":"UK_Risk Ops - IDV","type":"Internal","pct":{"Apr":0.01,"May":0.01,"Jun":0.01,"Jul":0.01,"Aug":0.01,"Sep":0.01,"Oct":0.01,"Nov":0.01,"Dec":0.01}},{"vertical":"Afterpay","queue":"UK_Risk Ops - IDV","type":"Con - India","pct":{"Apr":0,"May":0,"Jun":0.135,"Jul":0.27,"Aug":0.405,"Sep":0.54,"Oct":0.54,"Nov":0.54,"Dec":0.54}},{"vertical":"Afterpay","queue":"UK_Risk Ops - IDV","type":"Probe - India","pct":{"Apr":0.731,"May":0.755,"Jun":0.855,"Jul":0.72,"Aug":0.585,"Sep":0.45,"Oct":0.45,"Nov":0.45,"Dec":0.45}},{"vertical":"ATO","queue":"ATO Locks","type":"Internal","pct":{"Apr":0.2889,"May":0.2889,"Jun":0.289,"Jul":0.289,"Aug":0.289,"Sep":0.289,"Oct":0.289,"Nov":0.289,"Dec":0.289}},{"vertical":"ATO","queue":"ATO Locks","type":"Con - India","pct":{"Apr":0.953,"May":1.181,"Jun":1.181,"Jul":0.7110000000000001,"Aug":0.711,"Sep":0.711,"Oct":0.711,"Nov":0.711,"Dec":0.711}},{"vertical":"ATO","queue":"Self-Reported","type":"Internal","pct":{"Apr":0.2889,"May":0.2889,"Jun":0.289,"Jul":0.289,"Aug":0.289,"Sep":0.289,"Oct":0.289,"Nov":0.289,"Dec":0.289}},{"vertical":"ATO","queue":"Self-Reported","type":"Con - India","pct":{"Apr":0.953,"May":1.181,"Jun":1.181,"Jul":0.7110000000000001,"Aug":0.711,"Sep":0.711,"Oct":0.711,"Nov":0.711,"Dec":0.711}},{"vertical":"ATO","queue":"ATO ACAP","type":"Internal","pct":{"Apr":0.2889,"May":0.2889,"Jun":0.289,"Jul":0.289,"Aug":0.289,"Sep":0.289,"Oct":0.289,"Nov":0.289,"Dec":0.289}},{"vertical":"ATO","queue":"ATO ACAP","type":"Con - India","pct":{"Apr":0.953,"May":1.181,"Jun":1.181,"Jul":0.7110000000000001,"Aug":0.711,"Sep":0.711,"Oct":0.711,"Nov":0.711,"Dec":0.711}},{"vertical":"ATO","queue":"ATO Brokerage & Lending","type":"Internal","pct":{"Apr":0.2889,"May":0.2889,"Jun":0.289,"Jul":0.289,"Aug":0.289,"Sep":0.289,"Oct":0.289,"Nov":0.289,"Dec":0.289}},{"vertical":"ATO","queue":"ATO Brokerage & Lending","type":"Con - India","pct":{"Apr":0.953,"May":1.181,"Jun":1.181,"Jul":0.7110000000000001,"Aug":0.711,"Sep":0.711,"Oct":0.711,"Nov":0.711,"Dec":0.711}},{"vertical":"Appeals","queue":"Account Handover","type":"Internal","pct":{"Apr":0.2685,"May":0.2685,"Jun":0.2,"Jul":0.2,"Aug":0.2,"Sep":0.2,"Oct":0.2,"Nov":0.2,"Dec":0.2}},{"vertical":"Appeals","queue":"Account Handover","type":"Con - India","pct":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Appeals","queue":"Account Handover","type":"ALMS - India","pct":{"Apr":2.026,"May":2.026,"Jun":0.8,"Jul":0.8,"Aug":0.8,"Sep":0.8,"Oct":0.8,"Nov":0.8,"Dec":0.8}},{"vertical":"Appeals","queue":"Chargebacks","type":"Internal","pct":{"Apr":0.2685,"May":0.2685,"Jun":0.2,"Jul":0.2,"Aug":0.2,"Sep":0.2,"Oct":0.2,"Nov":0.2,"Dec":0.2}},{"vertical":"Appeals","queue":"Chargebacks","type":"Con - India","pct":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Appeals","queue":"Chargebacks","type":"ALMS - India","pct":{"Apr":2.026,"May":2.026,"Jun":0.8,"Jul":0.8,"Aug":0.8,"Sep":0.8,"Oct":0.8,"Nov":0.8,"Dec":0.8}},{"vertical":"Appeals","queue":"Denylist L2","type":"Internal","pct":{"Apr":0.2685,"May":0.2685,"Jun":0.2,"Jul":0.2,"Aug":0.2,"Sep":0.2,"Oct":0.2,"Nov":0.2,"Dec":0.2}},{"vertical":"Appeals","queue":"Denylist L2","type":"Con - India","pct":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Appeals","queue":"Denylist L2","type":"ALMS - India","pct":{"Apr":2.026,"May":2.026,"Jun":0.8,"Jul":0.8,"Aug":0.8,"Sep":0.8,"Oct":0.8,"Nov":0.8,"Dec":0.8}},{"vertical":"Appeals","queue":"Device attestation failed","type":"Internal","pct":{"Apr":0.2685,"May":0.2685,"Jun":0.2,"Jul":0.2,"Aug":0.2,"Sep":0.2,"Oct":0.2,"Nov":0.2,"Dec":0.2}},{"vertical":"Appeals","queue":"Device attestation failed","type":"Con - India","pct":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Appeals","queue":"Device attestation failed","type":"ALMS - India","pct":{"Apr":2.026,"May":2.026,"Jun":0.8,"Jul":0.8,"Aug":0.8,"Sep":0.8,"Oct":0.8,"Nov":0.8,"Dec":0.8}},{"vertical":"Appeals","queue":"Dispute Abuse","type":"Internal","pct":{"Apr":0.2685,"May":0.2685,"Jun":0.2,"Jul":0.2,"Aug":0.2,"Sep":0.2,"Oct":0.2,"Nov":0.2,"Dec":0.2}},{"vertical":"Appeals","queue":"Dispute Abuse","type":"Con - India","pct":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Appeals","queue":"Dispute Abuse","type":"ALMS - India","pct":{"Apr":2.026,"May":2.026,"Jun":0.8,"Jul":0.8,"Aug":0.8,"Sep":0.8,"Oct":0.8,"Nov":0.8,"Dec":0.8}},{"vertical":"Appeals","queue":"Fraud","type":"Internal","pct":{"Apr":0.2685,"May":0.2685,"Jun":0.2,"Jul":0.2,"Aug":0.2,"Sep":0.2,"Oct":0.2,"Nov":0.2,"Dec":0.2}},{"vertical":"Appeals","queue":"Fraud","type":"Con - India","pct":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Appeals","queue":"Fraud","type":"ALMS - India","pct":{"Apr":2.026,"May":2.026,"Jun":0.8,"Jul":0.8,"Aug":0.8,"Sep":0.8,"Oct":0.8,"Nov":0.8,"Dec":0.8}},{"vertical":"Appeals","queue":"IDV Failures","type":"Internal","pct":{"Apr":0.2685,"May":0.2685,"Jun":0.2,"Jul":0.2,"Aug":0.2,"Sep":0.2,"Oct":0.2,"Nov":0.2,"Dec":0.2}},{"vertical":"Appeals","queue":"IDV Failures","type":"Con - India","pct":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Appeals","queue":"IDV Failures","type":"ALMS - India","pct":{"Apr":2.026,"May":2.026,"Jun":0.8,"Jul":0.8,"Aug":0.8,"Sep":0.8,"Oct":0.8,"Nov":0.8,"Dec":0.8}},{"vertical":"Appeals","queue":"In-app Denylisting","type":"Internal","pct":{"Apr":0.2685,"May":0.2685,"Jun":0.2,"Jul":0.2,"Aug":0.2,"Sep":0.2,"Oct":0.2,"Nov":0.2,"Dec":0.2}},{"vertical":"Appeals","queue":"In-app Denylisting","type":"Con - India","pct":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Appeals","queue":"In-app Denylisting","type":"ALMS - India","pct":{"Apr":2.026,"May":2.026,"Jun":0.8,"Jul":0.8,"Aug":0.8,"Sep":0.8,"Oct":0.8,"Nov":0.8,"Dec":0.8}},{"vertical":"Appeals","queue":"Inauthentic account","type":"Internal","pct":{"Apr":0.2685,"May":0.2685,"Jun":0.2,"Jul":0.2,"Aug":0.2,"Sep":0.2,"Oct":0.2,"Nov":0.2,"Dec":0.2}},{"vertical":"Appeals","queue":"Inauthentic account","type":"Con - India","pct":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Appeals","queue":"Inauthentic account","type":"ALMS - India","pct":{"Apr":2.026,"May":2.026,"Jun":0.8,"Jul":0.8,"Aug":0.8,"Sep":0.8,"Oct":0.8,"Nov":0.8,"Dec":0.8}},{"vertical":"Appeals","queue":"Other","type":"Internal","pct":{"Apr":0.2685,"May":0.2685,"Jun":0.2,"Jul":0.2,"Aug":0.2,"Sep":0.2,"Oct":0.2,"Nov":0.2,"Dec":0.2}},{"vertical":"Appeals","queue":"Other","type":"Con - India","pct":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Appeals","queue":"Other","type":"ALMS - India","pct":{"Apr":2.026,"May":2.026,"Jun":0.8,"Jul":0.8,"Aug":0.8,"Sep":0.8,"Oct":0.8,"Nov":0.8,"Dec":0.8}},{"vertical":"Appeals","queue":"Scam","type":"Internal","pct":{"Apr":0.2685,"May":0.2685,"Jun":0.2,"Jul":0.2,"Aug":0.2,"Sep":0.2,"Oct":0.2,"Nov":0.2,"Dec":0.2}},{"vertical":"Appeals","queue":"Scam","type":"Con - India","pct":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Appeals","queue":"Scam","type":"ALMS - India","pct":{"Apr":2.026,"May":2.026,"Jun":0.8,"Jul":0.8,"Aug":0.8,"Sep":0.8,"Oct":0.8,"Nov":0.8,"Dec":0.8}},{"vertical":"Appeals","queue":"Scam Denylist L2","type":"Internal","pct":{"Apr":0.2685,"May":0.2685,"Jun":0.2,"Jul":0.2,"Aug":0.2,"Sep":0.2,"Oct":0.2,"Nov":0.2,"Dec":0.2}},{"vertical":"Appeals","queue":"Scam Denylist L2","type":"Con - India","pct":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Appeals","queue":"Scam Denylist L2","type":"ALMS - India","pct":{"Apr":2.026,"May":2.026,"Jun":0.8,"Jul":0.8,"Aug":0.8,"Sep":0.8,"Oct":0.8,"Nov":0.8,"Dec":0.8}},{"vertical":"Appeals","queue":"SSN","type":"Internal","pct":{"Apr":0.2685,"May":0.2685,"Jun":0.2,"Jul":0.2,"Aug":0.2,"Sep":0.2,"Oct":0.2,"Nov":0.2,"Dec":0.2}},{"vertical":"Appeals","queue":"SSN","type":"Con - India","pct":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Appeals","queue":"SSN","type":"ALMS - India","pct":{"Apr":2.026,"May":2.026,"Jun":0.8,"Jul":0.8,"Aug":0.8,"Sep":0.8,"Oct":0.8,"Nov":0.8,"Dec":0.8}},{"vertical":"Appeals","queue":"CompL1","type":"Internal","pct":{"Apr":0.2685,"May":0.2685,"Jun":0.2,"Jul":0.2,"Aug":0.2,"Sep":0.2,"Oct":0.2,"Nov":0.2,"Dec":0.2}},{"vertical":"Appeals","queue":"CompL1","type":"Con - India","pct":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Appeals","queue":"CompL1","type":"ALMS - India","pct":{"Apr":2.026,"May":2.026,"Jun":0.8,"Jul":0.8,"Aug":0.8,"Sep":0.8,"Oct":0.8,"Nov":0.8,"Dec":0.8}},{"vertical":"Appeals","queue":"Comp L2","type":"Internal","pct":{"Apr":0.2685,"May":0.2685,"Jun":0.2,"Jul":0.2,"Aug":0.2,"Sep":0.2,"Oct":0.2,"Nov":0.2,"Dec":0.2}},{"vertical":"Appeals","queue":"Comp L2","type":"Con - India","pct":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Appeals","queue":"Comp L2","type":"ALMS - India","pct":{"Apr":2.026,"May":2.026,"Jun":0.8,"Jul":0.8,"Aug":0.8,"Sep":0.8,"Oct":0.8,"Nov":0.8,"Dec":0.8}},{"vertical":"Appeals","queue":"Proctive L1","type":"Internal","pct":{"Apr":0.2685,"May":0.2685,"Jun":0.2,"Jul":0.2,"Aug":0.2,"Sep":0.2,"Oct":0.2,"Nov":0.2,"Dec":0.2}},{"vertical":"Appeals","queue":"Proctive L1","type":"Con - India","pct":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Appeals","queue":"Proctive L1","type":"ALMS - India","pct":{"Apr":2.026,"May":2.026,"Jun":0.8,"Jul":0.8,"Aug":0.8,"Sep":0.8,"Oct":0.8,"Nov":0.8,"Dec":0.8}},{"vertical":"Appeals","queue":"Proactive L2","type":"Internal","pct":{"Apr":0.2685,"May":0.2685,"Jun":0.2,"Jul":0.2,"Aug":0.2,"Sep":0.2,"Oct":0.2,"Nov":0.2,"Dec":0.2}},{"vertical":"Appeals","queue":"Proactive L2","type":"Con - India","pct":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Appeals","queue":"Proactive L2","type":"ALMS - India","pct":{"Apr":2.026,"May":2.026,"Jun":0.8,"Jul":0.8,"Aug":0.8,"Sep":0.8,"Oct":0.8,"Nov":0.8,"Dec":0.8}},{"vertical":"Appeals","queue":"IDV Failures L2","type":"Internal","pct":{"Apr":0.2685,"May":0.2685,"Jun":0.2,"Jul":0.2,"Aug":0.2,"Sep":0.2,"Oct":0.2,"Nov":0.2,"Dec":0.2}},{"vertical":"Appeals","queue":"IDV Failures L2","type":"Con - India","pct":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Appeals","queue":"IDV Failures L2","type":"ALMS - India","pct":{"Apr":2.026,"May":2.026,"Jun":0.8,"Jul":0.8,"Aug":0.8,"Sep":0.8,"Oct":0.8,"Nov":0.8,"Dec":0.8}},{"vertical":"Banking","queue":"CF1 Cx queue","type":"Internal","pct":{"Apr":0.395,"May":0.395,"Jun":0.408,"Jul":0.408,"Aug":0.408,"Sep":0.408,"Oct":0.408,"Nov":0.408,"Dec":0.408}},{"vertical":"Banking","queue":"CF1 Cx queue","type":"Con - India","pct":{"Apr":0.67,"May":0.67,"Jun":0.5920000000000001,"Jul":0.5920000000000001,"Aug":0.5920000000000001,"Sep":0.5920000000000001,"Oct":0.5920000000000001,"Nov":0.5920000000000001,"Dec":0.5920000000000001}},{"vertical":"Banking","queue":"Cash Card Suspension","type":"Internal","pct":{"Apr":0.395,"May":0.395,"Jun":0.408,"Jul":0.408,"Aug":0.408,"Sep":0.408,"Oct":0.408,"Nov":0.408,"Dec":0.408}},{"vertical":"Banking","queue":"Cash Card Suspension","type":"Con - India","pct":{"Apr":0.67,"May":0.67,"Jun":0.5920000000000001,"Jul":0.5920000000000001,"Aug":0.5920000000000001,"Sep":0.5920000000000001,"Oct":0.5920000000000001,"Nov":0.5920000000000001,"Dec":0.5920000000000001}},{"vertical":"Banking","queue":"DANs","type":"Internal","pct":{"Apr":0.395,"May":0.395,"Jun":0.408,"Jul":0.408,"Aug":0.408,"Sep":0.408,"Oct":0.408,"Nov":0.408,"Dec":0.408}},{"vertical":"Banking","queue":"DANs","type":"Con - India","pct":{"Apr":0.67,"May":0.67,"Jun":0.5920000000000001,"Jul":0.5920000000000001,"Aug":0.5920000000000001,"Sep":0.5920000000000001,"Oct":0.5920000000000001,"Nov":0.5920000000000001,"Dec":0.5920000000000001}},{"vertical":"Banking","queue":"Fraud","type":"Internal","pct":{"Apr":0.395,"May":0.395,"Jun":0.408,"Jul":0.408,"Aug":0.408,"Sep":0.408,"Oct":0.408,"Nov":0.408,"Dec":0.408}},{"vertical":"Banking","queue":"Fraud","type":"Con - India","pct":{"Apr":0.67,"May":0.67,"Jun":0.5920000000000001,"Jul":0.5920000000000001,"Aug":0.5920000000000001,"Sep":0.5920000000000001,"Oct":0.5920000000000001,"Nov":0.5920000000000001,"Dec":0.5920000000000001}},{"vertical":"Banking","queue":"LabelBox","type":"Internal","pct":{"Apr":0.395,"May":0.395,"Jun":0.408,"Jul":0.408,"Aug":0.408,"Sep":0.408,"Oct":0.408,"Nov":0.408,"Dec":0.408}},{"vertical":"Banking","queue":"LabelBox","type":"Con - India","pct":{"Apr":0.67,"May":0.67,"Jun":0.5920000000000001,"Jul":0.5920000000000001,"Aug":0.5920000000000001,"Sep":0.5920000000000001,"Oct":0.5920000000000001,"Nov":0.5920000000000001,"Dec":0.5920000000000001}},{"vertical":"Banking","queue":"ML Review","type":"Internal","pct":{"Apr":0.395,"May":0.395,"Jun":0.408,"Jul":0.408,"Aug":0.408,"Sep":0.408,"Oct":0.408,"Nov":0.408,"Dec":0.408}},{"vertical":"Banking","queue":"ML Review","type":"Con - India","pct":{"Apr":0.67,"May":0.67,"Jun":0.5920000000000001,"Jul":0.5920000000000001,"Aug":0.5920000000000001,"Sep":0.5920000000000001,"Oct":0.5920000000000001,"Nov":0.5920000000000001,"Dec":0.5920000000000001}},{"vertical":"Banking","queue":"Mobile Check Reviews","type":"Internal","pct":{"Apr":0.395,"May":0.395,"Jun":0.408,"Jul":0.408,"Aug":0.408,"Sep":0.408,"Oct":0.408,"Nov":0.408,"Dec":0.408}},{"vertical":"Banking","queue":"Mobile Check Reviews","type":"Con - India","pct":{"Apr":0.67,"May":0.67,"Jun":0.5920000000000001,"Jul":0.5920000000000001,"Aug":0.5920000000000001,"Sep":0.5920000000000001,"Oct":0.5920000000000001,"Nov":0.5920000000000001,"Dec":0.5920000000000001}},{"vertical":"Banking","queue":"Returns","type":"Internal","pct":{"Apr":0.395,"May":0.395,"Jun":0.408,"Jul":0.408,"Aug":0.408,"Sep":0.408,"Oct":0.408,"Nov":0.408,"Dec":0.408}},{"vertical":"Banking","queue":"Returns","type":"Con - India","pct":{"Apr":0.67,"May":0.67,"Jun":0.5920000000000001,"Jul":0.5920000000000001,"Aug":0.5920000000000001,"Sep":0.5920000000000001,"Oct":0.5920000000000001,"Nov":0.5920000000000001,"Dec":0.5920000000000001}},{"vertical":"Banking","queue":"Risk Reviews","type":"Internal","pct":{"Apr":0.395,"May":0.395,"Jun":0.408,"Jul":0.408,"Aug":0.408,"Sep":0.408,"Oct":0.408,"Nov":0.408,"Dec":0.408}},{"vertical":"Banking","queue":"Risk Reviews","type":"Con - India","pct":{"Apr":0.67,"May":0.67,"Jun":0.5920000000000001,"Jul":0.5920000000000001,"Aug":0.5920000000000001,"Sep":0.5920000000000001,"Oct":0.5920000000000001,"Nov":0.5920000000000001,"Dec":0.5920000000000001}},{"vertical":"Banking","queue":"Verification Calls","type":"Internal","pct":{"Apr":0.395,"May":0.395,"Jun":0.408,"Jul":0.408,"Aug":0.408,"Sep":0.408,"Oct":0.408,"Nov":0.408,"Dec":0.408}},{"vertical":"Banking","queue":"Verification Calls","type":"Con - India","pct":{"Apr":0.67,"May":0.67,"Jun":0.5920000000000001,"Jul":0.5920000000000001,"Aug":0.5920000000000001,"Sep":0.5920000000000001,"Oct":0.5920000000000001,"Nov":0.5920000000000001,"Dec":0.5920000000000001}},{"vertical":"BIT","queue":"BIT - ACH","type":"Internal","pct":{"Apr":1,"May":1,"Jun":1,"Jul":1,"Aug":1,"Sep":1,"Oct":1,"Nov":1,"Dec":1}},{"vertical":"BIT","queue":"BIT - CAC","type":"Internal","pct":{"Apr":1,"May":1,"Jun":1,"Jul":1,"Aug":1,"Sep":1,"Oct":1,"Nov":1,"Dec":1}},{"vertical":"BIT","queue":"BIT - Non-Core","type":"Internal","pct":{"Apr":1,"May":1,"Jun":1,"Jul":1,"Aug":1,"Sep":1,"Oct":1,"Nov":1,"Dec":1}},{"vertical":"BIT","queue":"BIT - UI","type":"Internal","pct":{"Apr":1,"May":1,"Jun":1,"Jul":1,"Aug":1,"Sep":1,"Oct":1,"Nov":1,"Dec":1}},{"vertical":"Disputes","queue":"Remediation","type":"Internal","pct":{"Apr":0.146,"May":0.135,"Jun":0.135,"Jul":0.135,"Aug":0.136,"Sep":0.136,"Oct":0.136,"Nov":0.136,"Dec":0.136}},{"vertical":"Disputes","queue":"Remediation","type":"Con - Latam","pct":{"Apr":0.793,"May":0.749,"Jun":0.749,"Jul":0.749,"Aug":0.3511318502441672,"Sep":0.3511318502441672,"Oct":0.3511318502441672,"Nov":0.3511318502441672,"Dec":0.3511318502441672}},{"vertical":"Disputes","queue":"Remediation","type":"Con - India","pct":{"Apr":0.608,"May":0.697,"Jun":0.722,"Jul":0.723,"Aug":0.3389430276722735,"Sep":0.3389430276722735,"Oct":0.3389430276722735,"Nov":0.3389430276722735,"Dec":0.3389430276722735}},{"vertical":"Disputes","queue":"Remediation","type":"Sutherland - India","pct":{"Apr":0.3098,"May":0.291,"Jun":0.371,"Jul":0.371,"Aug":0.1739251220835594,"Sep":0.1739251220835594,"Oct":0.1739251220835594,"Nov":0.1739251220835594,"Dec":0.1739251220835594}},{"vertical":"Disputes","queue":"Appeals","type":"Internal","pct":{"Apr":0.146,"May":0.135,"Jun":0.135,"Jul":0.135,"Aug":0.136,"Sep":0.136,"Oct":0.136,"Nov":0.136,"Dec":0.136}},{"vertical":"Disputes","queue":"Appeals","type":"Con - Latam","pct":{"Apr":0.793,"May":0.749,"Jun":0.749,"Jul":0.749,"Aug":0.3511318502441672,"Sep":0.3511318502441672,"Oct":0.3511318502441672,"Nov":0.3511318502441672,"Dec":0.3511318502441672}},{"vertical":"Disputes","queue":"Appeals","type":"Con - India","pct":{"Apr":0.608,"May":0.697,"Jun":0.722,"Jul":0.723,"Aug":0.3389430276722735,"Sep":0.3389430276722735,"Oct":0.3389430276722735,"Nov":0.3389430276722735,"Dec":0.3389430276722735}},{"vertical":"Disputes","queue":"Appeals","type":"Sutherland - India","pct":{"Apr":0.3098,"May":0.291,"Jun":0.371,"Jul":0.371,"Aug":0.1739251220835594,"Sep":0.1739251220835594,"Oct":0.1739251220835594,"Nov":0.1739251220835594,"Dec":0.1739251220835594}},{"vertical":"Disputes","queue":"Dispute Group 1","type":"Internal","pct":{"Apr":0.146,"May":0.135,"Jun":0.135,"Jul":0.135,"Aug":0.136,"Sep":0.136,"Oct":0.136,"Nov":0.136,"Dec":0.136}},{"vertical":"Disputes","queue":"Dispute Group 1","type":"Con - Latam","pct":{"Apr":0.793,"May":0.749,"Jun":0.749,"Jul":0.749,"Aug":0.3511318502441672,"Sep":0.3511318502441672,"Oct":0.3511318502441672,"Nov":0.3511318502441672,"Dec":0.3511318502441672}},{"vertical":"Disputes","queue":"Dispute Group 1","type":"Con - India","pct":{"Apr":0.608,"May":0.697,"Jun":0.722,"Jul":0.723,"Aug":0.3389430276722735,"Sep":0.3389430276722735,"Oct":0.3389430276722735,"Nov":0.3389430276722735,"Dec":0.3389430276722735}},{"vertical":"Disputes","queue":"Dispute Group 1","type":"Sutherland - India","pct":{"Apr":0.3098,"May":0.291,"Jun":0.371,"Jul":0.371,"Aug":0.1739251220835594,"Sep":0.1739251220835594,"Oct":0.1739251220835594,"Nov":0.1739251220835594,"Dec":0.1739251220835594}},{"vertical":"Disputes","queue":"Dispute Group 2","type":"Internal","pct":{"Apr":0.146,"May":0.135,"Jun":0.135,"Jul":0.135,"Aug":0.136,"Sep":0.136,"Oct":0.136,"Nov":0.136,"Dec":0.136}},{"vertical":"Disputes","queue":"Dispute Group 2","type":"Con - Latam","pct":{"Apr":0.793,"May":0.749,"Jun":0.749,"Jul":0.749,"Aug":0.3511318502441672,"Sep":0.3511318502441672,"Oct":0.3511318502441672,"Nov":0.3511318502441672,"Dec":0.3511318502441672}},{"vertical":"Disputes","queue":"Dispute Group 2","type":"Con - India","pct":{"Apr":0.608,"May":0.697,"Jun":0.722,"Jul":0.723,"Aug":0.3389430276722735,"Sep":0.3389430276722735,"Oct":0.3389430276722735,"Nov":0.3389430276722735,"Dec":0.3389430276722735}},{"vertical":"Disputes","queue":"Dispute Group 2","type":"Sutherland - India","pct":{"Apr":0.3098,"May":0.291,"Jun":0.371,"Jul":0.371,"Aug":0.1739251220835594,"Sep":0.1739251220835594,"Oct":0.1739251220835594,"Nov":0.1739251220835594,"Dec":0.1739251220835594}},{"vertical":"Disputes","queue":"Dispute Group 3","type":"Internal","pct":{"Apr":0.146,"May":0.135,"Jun":0.135,"Jul":0.135,"Aug":0.136,"Sep":0.136,"Oct":0.136,"Nov":0.136,"Dec":0.136}},{"vertical":"Disputes","queue":"Dispute Group 3","type":"Con - Latam","pct":{"Apr":0.793,"May":0.749,"Jun":0.749,"Jul":0.749,"Aug":0.3511318502441672,"Sep":0.3511318502441672,"Oct":0.3511318502441672,"Nov":0.3511318502441672,"Dec":0.3511318502441672}},{"vertical":"Disputes","queue":"Dispute Group 3","type":"Con - India","pct":{"Apr":0.608,"May":0.697,"Jun":0.722,"Jul":0.723,"Aug":0.3389430276722735,"Sep":0.3389430276722735,"Oct":0.3389430276722735,"Nov":0.3389430276722735,"Dec":0.3389430276722735}},{"vertical":"Disputes","queue":"Dispute Group 3","type":"Sutherland - India","pct":{"Apr":0.3098,"May":0.291,"Jun":0.371,"Jul":0.371,"Aug":0.1739251220835594,"Sep":0.1739251220835594,"Oct":0.1739251220835594,"Nov":0.1739251220835594,"Dec":0.1739251220835594}},{"vertical":"Disputes","queue":"Dispute Group 4","type":"Internal","pct":{"Apr":0.146,"May":0.135,"Jun":0.135,"Jul":0.135,"Aug":0.136,"Sep":0.136,"Oct":0.136,"Nov":0.136,"Dec":0.136}},{"vertical":"Disputes","queue":"Dispute Group 4","type":"Con - Latam","pct":{"Apr":0.793,"May":0.749,"Jun":0.749,"Jul":0.749,"Aug":0.3511318502441672,"Sep":0.3511318502441672,"Oct":0.3511318502441672,"Nov":0.3511318502441672,"Dec":0.3511318502441672}},{"vertical":"Disputes","queue":"Dispute Group 4","type":"Con - India","pct":{"Apr":0.608,"May":0.697,"Jun":0.722,"Jul":0.723,"Aug":0.3389430276722735,"Sep":0.3389430276722735,"Oct":0.3389430276722735,"Nov":0.3389430276722735,"Dec":0.3389430276722735}},{"vertical":"Disputes","queue":"Dispute Group 4","type":"Sutherland - India","pct":{"Apr":0.3098,"May":0.291,"Jun":0.371,"Jul":0.371,"Aug":0.1739251220835594,"Sep":0.1739251220835594,"Oct":0.1739251220835594,"Nov":0.1739251220835594,"Dec":0.1739251220835594}},{"vertical":"Disputes","queue":"Dispute Group 5","type":"Internal","pct":{"Apr":0.146,"May":0.135,"Jun":0.135,"Jul":0.135,"Aug":0.136,"Sep":0.136,"Oct":0.136,"Nov":0.136,"Dec":0.136}},{"vertical":"Disputes","queue":"Dispute Group 5","type":"Con - Latam","pct":{"Apr":0.793,"May":0.749,"Jun":0.749,"Jul":0.749,"Aug":0.3511318502441672,"Sep":0.3511318502441672,"Oct":0.3511318502441672,"Nov":0.3511318502441672,"Dec":0.3511318502441672}},{"vertical":"Disputes","queue":"Dispute Group 5","type":"Con - India","pct":{"Apr":0.608,"May":0.697,"Jun":0.722,"Jul":0.723,"Aug":0.3389430276722735,"Sep":0.3389430276722735,"Oct":0.3389430276722735,"Nov":0.3389430276722735,"Dec":0.3389430276722735}},{"vertical":"Disputes","queue":"Dispute Group 5","type":"Sutherland - India","pct":{"Apr":0.3098,"May":0.291,"Jun":0.371,"Jul":0.371,"Aug":0.1739251220835594,"Sep":0.1739251220835594,"Oct":0.1739251220835594,"Nov":0.1739251220835594,"Dec":0.1739251220835594}},{"vertical":"Disputes","queue":"Dispute Group 6","type":"Internal","pct":{"Apr":0.146,"May":0.135,"Jun":0.135,"Jul":0.135,"Aug":0.136,"Sep":0.136,"Oct":0.136,"Nov":0.136,"Dec":0.136}},{"vertical":"Disputes","queue":"Dispute Group 6","type":"Con - Latam","pct":{"Apr":0.793,"May":0.749,"Jun":0.749,"Jul":0.749,"Aug":0.3511318502441672,"Sep":0.3511318502441672,"Oct":0.3511318502441672,"Nov":0.3511318502441672,"Dec":0.3511318502441672}},{"vertical":"Disputes","queue":"Dispute Group 6","type":"Con - India","pct":{"Apr":0.608,"May":0.697,"Jun":0.722,"Jul":0.723,"Aug":0.3389430276722735,"Sep":0.3389430276722735,"Oct":0.3389430276722735,"Nov":0.3389430276722735,"Dec":0.3389430276722735}},{"vertical":"Disputes","queue":"Dispute Group 6","type":"Sutherland - India","pct":{"Apr":0.3098,"May":0.291,"Jun":0.371,"Jul":0.371,"Aug":0.1739251220835594,"Sep":0.1739251220835594,"Oct":0.1739251220835594,"Nov":0.1739251220835594,"Dec":0.1739251220835594}},{"vertical":"Disputes","queue":"Dispute Group 7","type":"Internal","pct":{"Apr":0.146,"May":0.135,"Jun":0.135,"Jul":0.135,"Aug":0.136,"Sep":0.136,"Oct":0.136,"Nov":0.136,"Dec":0.136}},{"vertical":"Disputes","queue":"Dispute Group 7","type":"Con - Latam","pct":{"Apr":0.793,"May":0.749,"Jun":0.749,"Jul":0.749,"Aug":0.3511318502441672,"Sep":0.3511318502441672,"Oct":0.3511318502441672,"Nov":0.3511318502441672,"Dec":0.3511318502441672}},{"vertical":"Disputes","queue":"Dispute Group 7","type":"Con - India","pct":{"Apr":0.608,"May":0.697,"Jun":0.722,"Jul":0.723,"Aug":0.3389430276722735,"Sep":0.3389430276722735,"Oct":0.3389430276722735,"Nov":0.3389430276722735,"Dec":0.3389430276722735}},{"vertical":"Disputes","queue":"Dispute Group 7","type":"Sutherland - India","pct":{"Apr":0.3098,"May":0.291,"Jun":0.371,"Jul":0.371,"Aug":0.1739251220835594,"Sep":0.1739251220835594,"Oct":0.1739251220835594,"Nov":0.1739251220835594,"Dec":0.1739251220835594}},{"vertical":"Foundations","queue":"CAP","type":"Internal","pct":{"Apr":0.6134,"May":0.6134,"Jun":0.6345,"Jul":0.6345,"Aug":0.6345,"Sep":0.6345,"Oct":0.6345,"Nov":0.6345,"Dec":0.6345}},{"vertical":"Foundations","queue":"CAP","type":"Foundever - Latam","pct":{"Apr":0.207,"May":0.207,"Jun":0.07299421128798843,"Jul":0,"Aug":0.07299421128798843,"Sep":0.07299421128798843,"Oct":0.07299421128798843,"Nov":0.07299421128798843,"Dec":0.07299421128798843}},{"vertical":"Foundations","queue":"CAP","type":"Foundever - US","pct":{"Apr":0.173,"May":0.173,"Jun":0.06100482392667632,"Jul":0,"Aug":0.06100482392667632,"Sep":0.06100482392667632,"Oct":0.06100482392667632,"Nov":0.06100482392667632,"Dec":0.06100482392667632}},{"vertical":"Foundations","queue":"CAP","type":"Sutherland - India","pct":{"Apr":0.6565,"May":0.6565,"Jun":0.2315009647853353,"Jul":0.3655,"Aug":0.2315009647853353,"Sep":0.2315009647853353,"Oct":0.2315009647853353,"Nov":0.2315009647853353,"Dec":0.2315009647853353}},{"vertical":"Foundations","queue":"Cash-in blocks","type":"Internal","pct":{"Apr":0.6134,"May":0.6134,"Jun":0.6345,"Jul":0.6345,"Aug":0.6345,"Sep":0.6345,"Oct":0.6345,"Nov":0.6345,"Dec":0.6345}},{"vertical":"Foundations","queue":"Cash-in blocks","type":"Foundever - Latam","pct":{"Apr":0.207,"May":0.207,"Jun":0.07299421128798843,"Jul":0,"Aug":0.07299421128798843,"Sep":0.07299421128798843,"Oct":0.07299421128798843,"Nov":0.07299421128798843,"Dec":0.07299421128798843}},{"vertical":"Foundations","queue":"Cash-in blocks","type":"Foundever - US","pct":{"Apr":0.173,"May":0.173,"Jun":0.06100482392667632,"Jul":0,"Aug":0.06100482392667632,"Sep":0.06100482392667632,"Oct":0.06100482392667632,"Nov":0.06100482392667632,"Dec":0.06100482392667632}},{"vertical":"Foundations","queue":"Cash-in blocks","type":"Sutherland - India","pct":{"Apr":0.6565,"May":0.6565,"Jun":0.2315009647853353,"Jul":0.3655,"Aug":0.2315009647853353,"Sep":0.2315009647853353,"Oct":0.2315009647853353,"Nov":0.2315009647853353,"Dec":0.2315009647853353}},{"vertical":"Foundations","queue":"dIDV","type":"Internal","pct":{"Apr":0.6134,"May":0.6134,"Jun":0.6345,"Jul":0.6345,"Aug":0.6345,"Sep":0.6345,"Oct":0.6345,"Nov":0.6345,"Dec":0.6345}},{"vertical":"Foundations","queue":"dIDV","type":"Foundever - Latam","pct":{"Apr":0.207,"May":0.207,"Jun":0.07299421128798843,"Jul":0,"Aug":0.07299421128798843,"Sep":0.07299421128798843,"Oct":0.07299421128798843,"Nov":0.07299421128798843,"Dec":0.07299421128798843}},{"vertical":"Foundations","queue":"dIDV","type":"Foundever - US","pct":{"Apr":0.173,"May":0.173,"Jun":0.06100482392667632,"Jul":0,"Aug":0.06100482392667632,"Sep":0.06100482392667632,"Oct":0.06100482392667632,"Nov":0.06100482392667632,"Dec":0.06100482392667632}},{"vertical":"Foundations","queue":"dIDV","type":"Sutherland - India","pct":{"Apr":0.6565,"May":0.6565,"Jun":0.2315009647853353,"Jul":0.3655,"Aug":0.2315009647853353,"Sep":0.2315009647853353,"Oct":0.2315009647853353,"Nov":0.2315009647853353,"Dec":0.2315009647853353}},{"vertical":"Foundations","queue":"Dispute Abuse","type":"Internal","pct":{"Apr":0.6134,"May":0.6134,"Jun":0.6345,"Jul":0.6345,"Aug":0.6345,"Sep":0.6345,"Oct":0.6345,"Nov":0.6345,"Dec":0.6345}},{"vertical":"Foundations","queue":"Dispute Abuse","type":"Foundever - Latam","pct":{"Apr":0.207,"May":0.207,"Jun":0.07299421128798843,"Jul":0,"Aug":0.07299421128798843,"Sep":0.07299421128798843,"Oct":0.07299421128798843,"Nov":0.07299421128798843,"Dec":0.07299421128798843}},{"vertical":"Foundations","queue":"Dispute Abuse","type":"Foundever - US","pct":{"Apr":0.173,"May":0.173,"Jun":0.06100482392667632,"Jul":0,"Aug":0.06100482392667632,"Sep":0.06100482392667632,"Oct":0.06100482392667632,"Nov":0.06100482392667632,"Dec":0.06100482392667632}},{"vertical":"Foundations","queue":"Dispute Abuse","type":"Sutherland - India","pct":{"Apr":0.6565,"May":0.6565,"Jun":0.2315009647853353,"Jul":0.3655,"Aug":0.2315009647853353,"Sep":0.2315009647853353,"Oct":0.2315009647853353,"Nov":0.2315009647853353,"Dec":0.2315009647853353}},{"vertical":"Foundations","queue":"eIDV","type":"Internal","pct":{"Apr":0.6134,"May":0.6134,"Jun":0.6345,"Jul":0.6345,"Aug":0.6345,"Sep":0.6345,"Oct":0.6345,"Nov":0.6345,"Dec":0.6345}},{"vertical":"Foundations","queue":"eIDV","type":"Foundever - Latam","pct":{"Apr":0.207,"May":0.207,"Jun":0.07299421128798843,"Jul":0,"Aug":0.07299421128798843,"Sep":0.07299421128798843,"Oct":0.07299421128798843,"Nov":0.07299421128798843,"Dec":0.07299421128798843}},{"vertical":"Foundations","queue":"eIDV","type":"Foundever - US","pct":{"Apr":0.173,"May":0.173,"Jun":0.06100482392667632,"Jul":0,"Aug":0.06100482392667632,"Sep":0.06100482392667632,"Oct":0.06100482392667632,"Nov":0.06100482392667632,"Dec":0.06100482392667632}},{"vertical":"Foundations","queue":"eIDV","type":"Sutherland - India","pct":{"Apr":0.6565,"May":0.6565,"Jun":0.2315009647853353,"Jul":0.3655,"Aug":0.2315009647853353,"Sep":0.2315009647853353,"Oct":0.2315009647853353,"Nov":0.2315009647853353,"Dec":0.2315009647853353}},{"vertical":"Foundations","queue":"Instrument","type":"Internal","pct":{"Apr":0.6134,"May":0.6134,"Jun":0.6345,"Jul":0.6345,"Aug":0.6345,"Sep":0.6345,"Oct":0.6345,"Nov":0.6345,"Dec":0.6345}},{"vertical":"Foundations","queue":"Instrument","type":"Foundever - Latam","pct":{"Apr":0.207,"May":0.207,"Jun":0.07299421128798843,"Jul":0,"Aug":0.07299421128798843,"Sep":0.07299421128798843,"Oct":0.07299421128798843,"Nov":0.07299421128798843,"Dec":0.07299421128798843}},{"vertical":"Foundations","queue":"Instrument","type":"Foundever - US","pct":{"Apr":0.173,"May":0.173,"Jun":0.06100482392667632,"Jul":0,"Aug":0.06100482392667632,"Sep":0.06100482392667632,"Oct":0.06100482392667632,"Nov":0.06100482392667632,"Dec":0.06100482392667632}},{"vertical":"Foundations","queue":"Instrument","type":"Sutherland - India","pct":{"Apr":0.6565,"May":0.6565,"Jun":0.2315009647853353,"Jul":0.3655,"Aug":0.2315009647853353,"Sep":0.2315009647853353,"Oct":0.2315009647853353,"Nov":0.2315009647853353,"Dec":0.2315009647853353}},{"vertical":"Foundations","queue":"ML ACH","type":"Internal","pct":{"Apr":0.6134,"May":0.6134,"Jun":0.6345,"Jul":0.6345,"Aug":0.6345,"Sep":0.6345,"Oct":0.6345,"Nov":0.6345,"Dec":0.6345}},{"vertical":"Foundations","queue":"ML ACH","type":"Foundever - Latam","pct":{"Apr":0.207,"May":0.207,"Jun":0.07299421128798843,"Jul":0,"Aug":0.07299421128798843,"Sep":0.07299421128798843,"Oct":0.07299421128798843,"Nov":0.07299421128798843,"Dec":0.07299421128798843}},{"vertical":"Foundations","queue":"ML ACH","type":"Foundever - US","pct":{"Apr":0.173,"May":0.173,"Jun":0.06100482392667632,"Jul":0,"Aug":0.06100482392667632,"Sep":0.06100482392667632,"Oct":0.06100482392667632,"Nov":0.06100482392667632,"Dec":0.06100482392667632}},{"vertical":"Foundations","queue":"ML ACH","type":"Sutherland - India","pct":{"Apr":0.6565,"May":0.6565,"Jun":0.2315009647853353,"Jul":0.3655,"Aug":0.2315009647853353,"Sep":0.2315009647853353,"Oct":0.2315009647853353,"Nov":0.2315009647853353,"Dec":0.2315009647853353}},{"vertical":"Foundations","queue":"ML CCFR","type":"Internal","pct":{"Apr":0.6134,"May":0.6134,"Jun":0.6345,"Jul":0.6345,"Aug":0.6345,"Sep":0.6345,"Oct":0.6345,"Nov":0.6345,"Dec":0.6345}},{"vertical":"Foundations","queue":"ML CCFR","type":"Foundever - Latam","pct":{"Apr":0.207,"May":0.207,"Jun":0.07299421128798843,"Jul":0,"Aug":0.07299421128798843,"Sep":0.07299421128798843,"Oct":0.07299421128798843,"Nov":0.07299421128798843,"Dec":0.07299421128798843}},{"vertical":"Foundations","queue":"ML CCFR","type":"Foundever - US","pct":{"Apr":0.173,"May":0.173,"Jun":0.06100482392667632,"Jul":0,"Aug":0.06100482392667632,"Sep":0.06100482392667632,"Oct":0.06100482392667632,"Nov":0.06100482392667632,"Dec":0.06100482392667632}},{"vertical":"Foundations","queue":"ML CCFR","type":"Sutherland - India","pct":{"Apr":0.6565,"May":0.6565,"Jun":0.2315009647853353,"Jul":0.3655,"Aug":0.2315009647853353,"Sep":0.2315009647853353,"Oct":0.2315009647853353,"Nov":0.2315009647853353,"Dec":0.2315009647853353}},{"vertical":"Foundations","queue":"ML Gov Dep/UI","type":"Internal","pct":{"Apr":0.6134,"May":0.6134,"Jun":0.6345,"Jul":0.6345,"Aug":0.6345,"Sep":0.6345,"Oct":0.6345,"Nov":0.6345,"Dec":0.6345}},{"vertical":"Foundations","queue":"ML Gov Dep/UI","type":"Foundever - Latam","pct":{"Apr":0.207,"May":0.207,"Jun":0.07299421128798843,"Jul":0,"Aug":0.07299421128798843,"Sep":0.07299421128798843,"Oct":0.07299421128798843,"Nov":0.07299421128798843,"Dec":0.07299421128798843}},{"vertical":"Foundations","queue":"ML Gov Dep/UI","type":"Foundever - US","pct":{"Apr":0.173,"May":0.173,"Jun":0.06100482392667632,"Jul":0,"Aug":0.06100482392667632,"Sep":0.06100482392667632,"Oct":0.06100482392667632,"Nov":0.06100482392667632,"Dec":0.06100482392667632}},{"vertical":"Foundations","queue":"ML Gov Dep/UI","type":"Sutherland - India","pct":{"Apr":0.6565,"May":0.6565,"Jun":0.2315009647853353,"Jul":0.3655,"Aug":0.2315009647853353,"Sep":0.2315009647853353,"Oct":0.2315009647853353,"Nov":0.2315009647853353,"Dec":0.2315009647853353}},{"vertical":"Foundations","queue":"P2P Blocks","type":"Internal","pct":{"Apr":0.6134,"May":0.6134,"Jun":0.6345,"Jul":0.6345,"Aug":0.6345,"Sep":0.6345,"Oct":0.6345,"Nov":0.6345,"Dec":0.6345}},{"vertical":"Foundations","queue":"P2P Blocks","type":"Foundever - Latam","pct":{"Apr":0.207,"May":0.207,"Jun":0.07299421128798843,"Jul":0,"Aug":0.07299421128798843,"Sep":0.07299421128798843,"Oct":0.07299421128798843,"Nov":0.07299421128798843,"Dec":0.07299421128798843}},{"vertical":"Foundations","queue":"P2P Blocks","type":"Foundever - US","pct":{"Apr":0.173,"May":0.173,"Jun":0.06100482392667632,"Jul":0,"Aug":0.06100482392667632,"Sep":0.06100482392667632,"Oct":0.06100482392667632,"Nov":0.06100482392667632,"Dec":0.06100482392667632}},{"vertical":"Foundations","queue":"P2P Blocks","type":"Sutherland - India","pct":{"Apr":0.6565,"May":0.6565,"Jun":0.2315009647853353,"Jul":0.3655,"Aug":0.2315009647853353,"Sep":0.2315009647853353,"Oct":0.2315009647853353,"Nov":0.2315009647853353,"Dec":0.2315009647853353}},{"vertical":"Foundations","queue":"Referral Blocks","type":"Internal","pct":{"Apr":0.6134,"May":0.6134,"Jun":0.6345,"Jul":0.6345,"Aug":0.6345,"Sep":0.6345,"Oct":0.6345,"Nov":0.6345,"Dec":0.6345}},{"vertical":"Foundations","queue":"Referral Blocks","type":"Foundever - Latam","pct":{"Apr":0.207,"May":0.207,"Jun":0.07299421128798843,"Jul":0,"Aug":0.07299421128798843,"Sep":0.07299421128798843,"Oct":0.07299421128798843,"Nov":0.07299421128798843,"Dec":0.07299421128798843}},{"vertical":"Foundations","queue":"Referral Blocks","type":"Foundever - US","pct":{"Apr":0.173,"May":0.173,"Jun":0.06100482392667632,"Jul":0,"Aug":0.06100482392667632,"Sep":0.06100482392667632,"Oct":0.06100482392667632,"Nov":0.06100482392667632,"Dec":0.06100482392667632}},{"vertical":"Foundations","queue":"Referral Blocks","type":"Sutherland - India","pct":{"Apr":0.6565,"May":0.6565,"Jun":0.2315009647853353,"Jul":0.3655,"Aug":0.2315009647853353,"Sep":0.2315009647853353,"Oct":0.2315009647853353,"Nov":0.2315009647853353,"Dec":0.2315009647853353}},{"vertical":"Foundations","queue":"Referral Payouts","type":"Internal","pct":{"Apr":0.6134,"May":0.6134,"Jun":0.6345,"Jul":0.6345,"Aug":0.6345,"Sep":0.6345,"Oct":0.6345,"Nov":0.6345,"Dec":0.6345}},{"vertical":"Foundations","queue":"Referral Payouts","type":"Foundever - Latam","pct":{"Apr":0.207,"May":0.207,"Jun":0.07299421128798843,"Jul":0,"Aug":0.07299421128798843,"Sep":0.07299421128798843,"Oct":0.07299421128798843,"Nov":0.07299421128798843,"Dec":0.07299421128798843}},{"vertical":"Foundations","queue":"Referral Payouts","type":"Foundever - US","pct":{"Apr":0.173,"May":0.173,"Jun":0.06100482392667632,"Jul":0,"Aug":0.06100482392667632,"Sep":0.06100482392667632,"Oct":0.06100482392667632,"Nov":0.06100482392667632,"Dec":0.06100482392667632}},{"vertical":"Foundations","queue":"Referral Payouts","type":"Sutherland - India","pct":{"Apr":0.6565,"May":0.6565,"Jun":0.2315009647853353,"Jul":0.3655,"Aug":0.2315009647853353,"Sep":0.2315009647853353,"Oct":0.2315009647853353,"Nov":0.2315009647853353,"Dec":0.2315009647853353}},{"vertical":"Foundations","queue":"Wires","type":"Internal","pct":{"Apr":0.6134,"May":0.6134,"Jun":0.6345,"Jul":0.6345,"Aug":0.6345,"Sep":0.6345,"Oct":0.6345,"Nov":0.6345,"Dec":0.6345}},{"vertical":"Foundations","queue":"Wires","type":"Foundever - Latam","pct":{"Apr":0.207,"May":0.207,"Jun":0.07299421128798843,"Jul":0,"Aug":0.07299421128798843,"Sep":0.07299421128798843,"Oct":0.07299421128798843,"Nov":0.07299421128798843,"Dec":0.07299421128798843}},{"vertical":"Foundations","queue":"Wires","type":"Foundever - US","pct":{"Apr":0.173,"May":0.173,"Jun":0.06100482392667632,"Jul":0,"Aug":0.06100482392667632,"Sep":0.06100482392667632,"Oct":0.06100482392667632,"Nov":0.06100482392667632,"Dec":0.06100482392667632}},{"vertical":"Foundations","queue":"Wires","type":"Sutherland - India","pct":{"Apr":0.6565,"May":0.6565,"Jun":0.2315009647853353,"Jul":0.3655,"Aug":0.2315009647853353,"Sep":0.2315009647853353,"Oct":0.2315009647853353,"Nov":0.2315009647853353,"Dec":0.2315009647853353}},{"vertical":"I & C","queue":"CC Sigs","type":"Internal","pct":{"Apr":0.1375,"May":0.1375,"Jun":0.1375,"Jul":0.1423,"Aug":0.1423,"Sep":0.1423,"Oct":0.1423,"Nov":0.1423,"Dec":0.1423}},{"vertical":"I & C","queue":"CC Sigs","type":"Con - India","pct":{"Apr":1.8444,"May":1.984,"Jun":1.984,"Jul":0.6977,"Aug":0.6977,"Sep":0.6977,"Oct":0.6977,"Nov":0.6977,"Dec":0.6977}},{"vertical":"I & C","queue":"CC Sigs","type":"Con - Latam","pct":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"I & C","queue":"CC Sigs","type":"Sutherland - India","pct":{"Apr":0.155,"May":0.155,"Jun":0.155,"Jul":0.16,"Aug":0.16,"Sep":0.16,"Oct":0.16,"Nov":0.16,"Dec":0.16}},{"vertical":"I & C","queue":"dIDV","type":"Internal","pct":{"Apr":0.1375,"May":0.1375,"Jun":0.1375,"Jul":0.1423,"Aug":0.1423,"Sep":0.1423,"Oct":0.1423,"Nov":0.1423,"Dec":0.1423}},{"vertical":"I & C","queue":"dIDV","type":"Con - India","pct":{"Apr":1.8444,"May":1.984,"Jun":1.984,"Jul":0.6977,"Aug":0.6977,"Sep":0.6977,"Oct":0.6977,"Nov":0.6977,"Dec":0.6977}},{"vertical":"I & C","queue":"dIDV","type":"Con - Latam","pct":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"I & C","queue":"dIDV","type":"Sutherland - India","pct":{"Apr":0.155,"May":0.155,"Jun":0.155,"Jul":0.16,"Aug":0.16,"Sep":0.16,"Oct":0.16,"Nov":0.16,"Dec":0.16}},{"vertical":"I & C","queue":"Elder Abuse","type":"Internal","pct":{"Apr":0.1375,"May":0.1375,"Jun":0.1375,"Jul":0.1423,"Aug":0.1423,"Sep":0.1423,"Oct":0.1423,"Nov":0.1423,"Dec":0.1423}},{"vertical":"I & C","queue":"Elder Abuse","type":"Con - India","pct":{"Apr":1.8444,"May":1.984,"Jun":1.984,"Jul":0.6977,"Aug":0.6977,"Sep":0.6977,"Oct":0.6977,"Nov":0.6977,"Dec":0.6977}},{"vertical":"I & C","queue":"Elder Abuse","type":"Con - Latam","pct":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"I & C","queue":"Elder Abuse","type":"Sutherland - India","pct":{"Apr":0.155,"May":0.155,"Jun":0.155,"Jul":0.16,"Aug":0.16,"Sep":0.16,"Oct":0.16,"Nov":0.16,"Dec":0.16}},{"vertical":"I & C","queue":"EV","type":"Internal","pct":{"Apr":0.1375,"May":0.1375,"Jun":0.1375,"Jul":0.1423,"Aug":0.1423,"Sep":0.1423,"Oct":0.1423,"Nov":0.1423,"Dec":0.1423}},{"vertical":"I & C","queue":"EV","type":"Con - India","pct":{"Apr":1.8444,"May":1.984,"Jun":1.984,"Jul":0.6977,"Aug":0.6977,"Sep":0.6977,"Oct":0.6977,"Nov":0.6977,"Dec":0.6977}},{"vertical":"I & C","queue":"EV","type":"Con - Latam","pct":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"I & C","queue":"EV","type":"Sutherland - India","pct":{"Apr":0.155,"May":0.155,"Jun":0.155,"Jul":0.16,"Aug":0.16,"Sep":0.16,"Oct":0.16,"Nov":0.16,"Dec":0.16}},{"vertical":"I & C","queue":"EV Manual","type":"Internal","pct":{"Apr":0.1375,"May":0.1375,"Jun":0.1375,"Jul":0.1423,"Aug":0.1423,"Sep":0.1423,"Oct":0.1423,"Nov":0.1423,"Dec":0.1423}},{"vertical":"I & C","queue":"EV Manual","type":"Con - India","pct":{"Apr":1.8444,"May":1.984,"Jun":1.984,"Jul":0.6977,"Aug":0.6977,"Sep":0.6977,"Oct":0.6977,"Nov":0.6977,"Dec":0.6977}},{"vertical":"I & C","queue":"EV Manual","type":"Con - Latam","pct":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"I & C","queue":"EV Manual","type":"Sutherland - India","pct":{"Apr":0.155,"May":0.155,"Jun":0.155,"Jul":0.16,"Aug":0.16,"Sep":0.16,"Oct":0.16,"Nov":0.16,"Dec":0.16}},{"vertical":"I & C","queue":"IA Suspension","type":"Internal","pct":{"Apr":0.1375,"May":0.1375,"Jun":0.1375,"Jul":0.1423,"Aug":0.1423,"Sep":0.1423,"Oct":0.1423,"Nov":0.1423,"Dec":0.1423}},{"vertical":"I & C","queue":"IA Suspension","type":"Con - India","pct":{"Apr":1.8444,"May":1.984,"Jun":1.984,"Jul":0.6977,"Aug":0.6977,"Sep":0.6977,"Oct":0.6977,"Nov":0.6977,"Dec":0.6977}},{"vertical":"I & C","queue":"IA Suspension","type":"Con - Latam","pct":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"I & C","queue":"IA Suspension","type":"Sutherland - India","pct":{"Apr":0.155,"May":0.155,"Jun":0.155,"Jul":0.16,"Aug":0.16,"Sep":0.16,"Oct":0.16,"Nov":0.16,"Dec":0.16}},{"vertical":"I & C","queue":"ID Theft","type":"Internal","pct":{"Apr":0.1375,"May":0.1375,"Jun":0.1375,"Jul":0.1423,"Aug":0.1423,"Sep":0.1423,"Oct":0.1423,"Nov":0.1423,"Dec":0.1423}},{"vertical":"I & C","queue":"ID Theft","type":"Con - India","pct":{"Apr":1.8444,"May":1.984,"Jun":1.984,"Jul":0.6977,"Aug":0.6977,"Sep":0.6977,"Oct":0.6977,"Nov":0.6977,"Dec":0.6977}},{"vertical":"I & C","queue":"ID Theft","type":"Con - Latam","pct":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"I & C","queue":"ID Theft","type":"Sutherland - India","pct":{"Apr":0.155,"May":0.155,"Jun":0.155,"Jul":0.16,"Aug":0.16,"Sep":0.16,"Oct":0.16,"Nov":0.16,"Dec":0.16}},{"vertical":"I & C","queue":"LNC","type":"Internal","pct":{"Apr":0.1375,"May":0.1375,"Jun":0.1375,"Jul":0.1423,"Aug":0.1423,"Sep":0.1423,"Oct":0.1423,"Nov":0.1423,"Dec":0.1423}},{"vertical":"I & C","queue":"LNC","type":"Con - India","pct":{"Apr":1.8444,"May":1.984,"Jun":1.984,"Jul":0.6977,"Aug":0.6977,"Sep":0.6977,"Oct":0.6977,"Nov":0.6977,"Dec":0.6977}},{"vertical":"I & C","queue":"LNC","type":"Con - Latam","pct":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"I & C","queue":"LNC","type":"Sutherland - India","pct":{"Apr":0.155,"May":0.155,"Jun":0.155,"Jul":0.16,"Aug":0.16,"Sep":0.16,"Oct":0.16,"Nov":0.16,"Dec":0.16}},{"vertical":"I & C","queue":"mIDV","type":"Internal","pct":{"Apr":0.1375,"May":0.1375,"Jun":0.1375,"Jul":0.1423,"Aug":0.1423,"Sep":0.1423,"Oct":0.1423,"Nov":0.1423,"Dec":0.1423}},{"vertical":"I & C","queue":"mIDV","type":"Con - India","pct":{"Apr":1.8444,"May":1.984,"Jun":1.984,"Jul":0.6977,"Aug":0.6977,"Sep":0.6977,"Oct":0.6977,"Nov":0.6977,"Dec":0.6977}},{"vertical":"I & C","queue":"mIDV","type":"Con - Latam","pct":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"I & C","queue":"mIDV","type":"Sutherland - India","pct":{"Apr":0.155,"May":0.155,"Jun":0.155,"Jul":0.16,"Aug":0.16,"Sep":0.16,"Oct":0.16,"Nov":0.16,"Dec":0.16}},{"vertical":"I & C","queue":"NPG","type":"Internal","pct":{"Apr":0.1375,"May":0.1375,"Jun":0.1375,"Jul":0.1423,"Aug":0.1423,"Sep":0.1423,"Oct":0.1423,"Nov":0.1423,"Dec":0.1423}},{"vertical":"I & C","queue":"NPG","type":"Con - India","pct":{"Apr":1.8444,"May":1.984,"Jun":1.984,"Jul":0.6977,"Aug":0.6977,"Sep":0.6977,"Oct":0.6977,"Nov":0.6977,"Dec":0.6977}},{"vertical":"I & C","queue":"NPG","type":"Con - Latam","pct":{"Apr":0,"May":0,"Jun":0,"Jul":0,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"I & C","queue":"NPG","type":"Sutherland - India","pct":{"Apr":0.155,"May":0.155,"Jun":0.155,"Jul":0.16,"Aug":0.16,"Sep":0.16,"Oct":0.16,"Nov":0.16,"Dec":0.16}},{"vertical":"Scam","queue":"Scam Claims (High)","type":"Internal","pct":{"Apr":0.2,"May":0.2,"Jun":0.2,"Jul":0.2,"Aug":0.2,"Sep":0.2,"Oct":0.2,"Nov":0.2,"Dec":0.2}},{"vertical":"Scam","queue":"Scam Claims (High)","type":"Con - India","pct":{"Apr":0.638,"May":1.1044,"Jun":1.1044,"Jul":0.8,"Aug":0.8,"Sep":0.8,"Oct":0.8,"Nov":0.8,"Dec":0.8}},{"vertical":"Scam","queue":"Scam Claims (Low)","type":"Internal","pct":{"Apr":0.2,"May":0.2,"Jun":0.2,"Jul":0.2,"Aug":0.2,"Sep":0.2,"Oct":0.2,"Nov":0.2,"Dec":0.2}},{"vertical":"Scam","queue":"Scam Claims (Low)","type":"Con - India","pct":{"Apr":0.638,"May":1.1044,"Jun":1.1044,"Jul":0.8,"Aug":0.8,"Sep":0.8,"Oct":0.8,"Nov":0.8,"Dec":0.8}},{"vertical":"Scam","queue":"Scam Claims (Mid)","type":"Internal","pct":{"Apr":0.2,"May":0.2,"Jun":0.2,"Jul":0.2,"Aug":0.2,"Sep":0.2,"Oct":0.2,"Nov":0.2,"Dec":0.2}},{"vertical":"Scam","queue":"Scam Claims (Mid)","type":"Con - India","pct":{"Apr":0.638,"May":1.1044,"Jun":1.1044,"Jul":0.8,"Aug":0.8,"Sep":0.8,"Oct":0.8,"Nov":0.8,"Dec":0.8}},{"vertical":"Scam","queue":"Suspected Scams","type":"Internal","pct":{"Apr":0.2,"May":0.2,"Jun":0.2,"Jul":0.2,"Aug":0.2,"Sep":0.2,"Oct":0.2,"Nov":0.2,"Dec":0.2}},{"vertical":"Scam","queue":"Suspected Scams","type":"Con - India","pct":{"Apr":0.638,"May":1.1044,"Jun":1.1044,"Jul":0.8,"Aug":0.8,"Sep":0.8,"Oct":0.8,"Nov":0.8,"Dec":0.8}},{"vertical":"Scam","queue":"Suspended Scams","type":"Internal","pct":{"Apr":0.2,"May":0.2,"Jun":0.2,"Jul":0.2,"Aug":0.2,"Sep":0.2,"Oct":0.2,"Nov":0.2,"Dec":0.2}},{"vertical":"Scam","queue":"Suspended Scams","type":"Con - India","pct":{"Apr":0.638,"May":1.1044,"Jun":1.1044,"Jul":0.8,"Aug":0.8,"Sep":0.8,"Oct":0.8,"Nov":0.8,"Dec":0.8}},{"vertical":"Square","queue":"Afterpay","type":"Internal","pct":{"Apr":0.4355,"May":0.4217,"Jun":0.4355,"Jul":0.4217,"Aug":0.4217,"Sep":0.4355,"Oct":0.4217,"Nov":0.4355,"Dec":0.4217}},{"vertical":"Square","queue":"Afterpay","type":"Con - India","pct":{"Apr":0,"May":0.29,"Jun":0.58,"Jul":0.5783,"Aug":0.5783,"Sep":0.5645,"Oct":0.5783,"Nov":0.5645,"Dec":0.5783}},{"vertical":"Square","queue":"Afterpay","type":"EXL - India","pct":{"Apr":1.1765,"May":0.8835,"Jun":0.6,"Jul":0.32,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Square","queue":"Banking","type":"Internal","pct":{"Apr":0.4355,"May":0.4217,"Jun":0.4355,"Jul":0.4217,"Aug":0.4217,"Sep":0.4355,"Oct":0.4217,"Nov":0.4355,"Dec":0.4217}},{"vertical":"Square","queue":"Banking","type":"Con - India","pct":{"Apr":0,"May":0.29,"Jun":0.58,"Jul":0.5783,"Aug":0.5783,"Sep":0.5645,"Oct":0.5783,"Nov":0.5645,"Dec":0.5783}},{"vertical":"Square","queue":"Banking","type":"EXL - India","pct":{"Apr":1.1765,"May":0.8835,"Jun":0.6,"Jul":0.32,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Square","queue":"Credit Risk","type":"Internal","pct":{"Apr":0.4355,"May":0.4217,"Jun":0.4355,"Jul":0.4217,"Aug":0.4217,"Sep":0.4355,"Oct":0.4217,"Nov":0.4355,"Dec":0.4217}},{"vertical":"Square","queue":"Credit Risk","type":"Con - India","pct":{"Apr":0,"May":0.29,"Jun":0.58,"Jul":0.5783,"Aug":0.5783,"Sep":0.5645,"Oct":0.5783,"Nov":0.5645,"Dec":0.5783}},{"vertical":"Square","queue":"Credit Risk","type":"EXL - India","pct":{"Apr":1.1765,"May":0.8835,"Jun":0.6,"Jul":0.32,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Square","queue":"Disputes","type":"Internal","pct":{"Apr":0.4355,"May":0.4217,"Jun":0.4355,"Jul":0.4217,"Aug":0.4217,"Sep":0.4355,"Oct":0.4217,"Nov":0.4355,"Dec":0.4217}},{"vertical":"Square","queue":"Disputes","type":"Con - India","pct":{"Apr":0,"May":0.29,"Jun":0.58,"Jul":0.5783,"Aug":0.5783,"Sep":0.5645,"Oct":0.5783,"Nov":0.5645,"Dec":0.5783}},{"vertical":"Square","queue":"Disputes","type":"EXL - India","pct":{"Apr":1.1765,"May":0.8835,"Jun":0.6,"Jul":0.32,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Square","queue":"FAST (Fake Account, Scams)-Pay Acceptance","type":"Internal","pct":{"Apr":0.4355,"May":0.4217,"Jun":0.4355,"Jul":0.4217,"Aug":0.4217,"Sep":0.4355,"Oct":0.4217,"Nov":0.4355,"Dec":0.4217}},{"vertical":"Square","queue":"FAST (Fake Account, Scams)-Pay Acceptance","type":"Con - India","pct":{"Apr":0,"May":0.29,"Jun":0.58,"Jul":0.5783,"Aug":0.5783,"Sep":0.5645,"Oct":0.5783,"Nov":0.5645,"Dec":0.5783}},{"vertical":"Square","queue":"FAST (Fake Account, Scams)-Pay Acceptance","type":"EXL - India","pct":{"Apr":1.1765,"May":0.8835,"Jun":0.6,"Jul":0.32,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Square","queue":"GAB (GMGB, ATO, BF)","type":"Internal","pct":{"Apr":0.4355,"May":0.4217,"Jun":0.4355,"Jul":0.4217,"Aug":0.4217,"Sep":0.4355,"Oct":0.4217,"Nov":0.4355,"Dec":0.4217}},{"vertical":"Square","queue":"GAB (GMGB, ATO, BF)","type":"Con - India","pct":{"Apr":0,"May":0.29,"Jun":0.58,"Jul":0.5783,"Aug":0.5783,"Sep":0.5645,"Oct":0.5783,"Nov":0.5645,"Dec":0.5783}},{"vertical":"Square","queue":"GAB (GMGB, ATO, BF)","type":"EXL - India","pct":{"Apr":1.1765,"May":0.8835,"Jun":0.6,"Jul":0.32,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}},{"vertical":"Square","queue":"Recovery - Payroll/Product","type":"Internal","pct":{"Apr":0.4355,"May":0.4217,"Jun":0.4355,"Jul":0.4217,"Aug":0.4217,"Sep":0.4355,"Oct":0.4217,"Nov":0.4355,"Dec":0.4217}},{"vertical":"Square","queue":"Recovery - Payroll/Product","type":"Con - India","pct":{"Apr":0,"May":0.29,"Jun":0.58,"Jul":0.5783,"Aug":0.5783,"Sep":0.5645,"Oct":0.5783,"Nov":0.5645,"Dec":0.5783}},{"vertical":"Square","queue":"Recovery - Payroll/Product","type":"EXL - India","pct":{"Apr":1.1765,"May":0.8835,"Jun":0.6,"Jul":0.32,"Aug":0,"Sep":0,"Oct":0,"Nov":0,"Dec":0}}];
+
+let allRows = [];
+let versionHistory = [{"date":"2026-03-26","vertical":"ALL","group":"","queue":"ALL","action":"File Creation","notes":"Upload 3/26"}];
+let riskOpsTargets = null;
+
+let lastFile = null;
+let lastFileName = '';
+
+// ===== EXCEL PARSER =====
+function parseNum(v) {
+  if (v === null || v === undefined || v === '' || v === '—' || v === '-') return 0;
+  const n = Number(v);
+  return isNaN(n) ? 0 : n;
+}
+
+function toShortMonth(s) {
+  if (!s) return null;
+  s = String(s).trim();
+  if (monthMap[s]) return monthMap[s];
+  if (shortMonthMap[s]) return shortMonthMap[s];
+  // Try first 3 chars
+  const s3 = s.substring(0,3);
+  if (shortMonthMap[s3]) return shortMonthMap[s3];
+  return null;
+}
+
+function parseExcel(arrayBuffer) {
+  const wb = XLSX.read(arrayBuffer, {type:'array'});
+
+  // Normalize vertical names so "I&C" and "I & C" match
+  // Uses the Shrink sheet names as the canonical source
+  let verticalNameMap = {}; // normalized key -> canonical name
+  function normalizeKey(s) { return s.replace(/\s+/g, '').toLowerCase(); }
+  function canonicalVertical(s) {
+    const key = normalizeKey(s);
+    if (verticalNameMap[key]) return verticalNameMap[key];
+    verticalNameMap[key] = s; // first seen becomes canonical
+    return s;
+  }
+
+  // ===== CALENDAR SHEET =====
+  const calSheet = wb.Sheets['Calendar'];
+  if (!calSheet) throw new Error('Missing "Calendar" sheet');
+  const calData = XLSX.utils.sheet_to_json(calSheet, {header:1});
+
+  // Row 0 = headers: Month, January, February, ...
+  const calHeaders = calData[0];
+  const calMonthCols = []; // [{col index, short month name}]
+  for (let i = 1; i < calHeaders.length; i++) {
+    const sm = toShortMonth(calHeaders[i]);
+    if (sm) calMonthCols.push({idx: i, month: sm});
+  }
+
+  // Find "Working Days" row (the one that includes weekends, not M-F only)
+  let wdRow = null;
+  for (let r = 1; r < calData.length; r++) {
+    const label = String(calData[r][0] || '').trim();
+    if (label === 'Working Days') { wdRow = calData[r]; break; }
+  }
+  if (!wdRow) throw new Error('Missing "Working Days" row in Calendar sheet');
+
+  // Collect all calendar months with working days (will be filtered later)
+  const calWorkingDays = {};
+  calMonthCols.forEach(mc => {
+    const wd = parseNum(wdRow[mc.idx]);
+    if (wd > 0) calWorkingDays[mc.month] = wd;
+  });
+
+  // ===== SHRINK SHEET =====
+  const shrinkSheet = wb.Sheets['Shrink'];
+  if (!shrinkSheet) throw new Error('Missing "Shrink" sheet');
+  const shrinkRaw = XLSX.utils.sheet_to_json(shrinkSheet, {header:1});
+
+  // Row 0 = headers: Vertical, Metric, month1, month2, ...
+  const shrinkHeaders = shrinkRaw[0];
+  const shrinkMonthCols = [];
+  for (let i = 2; i < shrinkHeaders.length; i++) {
+    const sm = toShortMonth(shrinkHeaders[i]);
+    if (sm && calWorkingDays[sm]) shrinkMonthCols.push({idx: i, month: sm});
+  }
+
+  // Use only months that appear in the Shrink sheet AND have working days
+  months = shrinkMonthCols.map(mc => mc.month);
+  workingDays = {};
+  months.forEach(m => { workingDays[m] = calWorkingDays[m]; });
+
+  shrinkData = {};
+  let currentVertical = '';
+  for (let r = 1; r < shrinkRaw.length; r++) {
+    const row = shrinkRaw[r];
+    if (!row || row.every(c => c === null || c === undefined || c === '')) continue;
+    if (row[0] && String(row[0]).trim()) currentVertical = canonicalVertical(String(row[0]).trim());
+    const metric = String(row[1] || '').trim();
+    if (!currentVertical || !metric) continue;
+
+    if (!shrinkData[currentVertical]) {
+      shrinkData[currentVertical] = {occupancy:{}, shrinkInternal:{}, shrinkExternal:{}};
+      months.forEach(m => {
+        shrinkData[currentVertical].occupancy[m] = 0;
+        shrinkData[currentVertical].shrinkInternal[m] = 0;
+        shrinkData[currentVertical].shrinkExternal[m] = 0;
+      });
+    }
+
+    shrinkMonthCols.forEach(mc => {
+      const val = parseNum(row[mc.idx]);
+      if (metric === 'Occupancy') shrinkData[currentVertical].occupancy[mc.month] = val;
+      else if (metric === 'Shrink - Internal') shrinkData[currentVertical].shrinkInternal[mc.month] = val;
+      else if (metric === 'Shrink - External') shrinkData[currentVertical].shrinkExternal[mc.month] = val;
+    });
+  }
+
+  // ===== WORKLOAD SHEET =====
+  const wlSheet = wb.Sheets['Workload'];
+  if (!wlSheet) throw new Error('Missing "Workload" sheet');
+  const wlRaw = XLSX.utils.sheet_to_json(wlSheet, {header:1});
+
+  const wlHeaders = wlRaw[0];
+  const wlMonthCols = [];
+  for (let i = 3; i < wlHeaders.length; i++) {
+    const sm = toShortMonth(wlHeaders[i]);
+    if (sm && months.includes(sm)) wlMonthCols.push({idx: i, month: sm});
+  }
+
+  workloadData = [];
+  let wlVertical = '', wlQueue = '';
+  const wlMap = {}; // key -> {vertical, queue, aht:{}, avgVolume:{}}
+  for (let r = 1; r < wlRaw.length; r++) {
+    const row = wlRaw[r];
+    if (!row || row.every(c => c === null || c === undefined || c === '')) continue;
+    if (row[0] && String(row[0]).trim()) wlVertical = canonicalVertical(String(row[0]).trim());
+    if (row[1] && String(row[1]).trim()) wlQueue = String(row[1]).trim();
+    const metric = String(row[2] || '').trim();
+    if (!wlVertical || !wlQueue || !metric) continue;
+    if (metric !== 'AHT' && metric !== 'Avg Volume') continue;
+
+    const key = wlVertical + '|||' + wlQueue;
+    if (!wlMap[key]) {
+      wlMap[key] = {vertical: wlVertical, queue: wlQueue, aht: {}, avgVolume: {}};
+      months.forEach(m => { wlMap[key].aht[m] = 0; wlMap[key].avgVolume[m] = 0; });
+    }
+
+    wlMonthCols.forEach(mc => {
+      const val = parseNum(row[mc.idx]);
+      if (metric === 'AHT') wlMap[key].aht[mc.month] = val;
+      else if (metric === 'Avg Volume') wlMap[key].avgVolume[mc.month] = val;
+    });
+  }
+  workloadData = Object.values(wlMap);
+
+  // ===== WORKLOAD% SHEET =====
+  const wpSheet = wb.Sheets['Workload%'];
+  if (!wpSheet) throw new Error('Missing "Workload%" sheet');
+  const wpRaw = XLSX.utils.sheet_to_json(wpSheet, {header:1});
+
+  const wpHeaders = wpRaw[0];
+  const wpMonthCols = [];
+  for (let i = 3; i < wpHeaders.length; i++) {
+    const sm = toShortMonth(wpHeaders[i]);
+    if (sm && months.includes(sm)) wpMonthCols.push({idx: i, month: sm});
+  }
+
+  workloadPctData = [];
+  let wpVertical = '', wpQueue = '';
+  for (let r = 1; r < wpRaw.length; r++) {
+    const row = wpRaw[r];
+    if (!row || row.every(c => c === null || c === undefined || c === '')) continue;
+    if (row[0] && String(row[0]).trim()) wpVertical = canonicalVertical(String(row[0]).trim());
+    if (row[1] && String(row[1]).trim()) wpQueue = String(row[1]).trim();
+    const wfType = String(row[2] || '').trim();
+    if (!wpVertical || !wpQueue || !wfType) continue;
+
+    const pct = {};
+    wpMonthCols.forEach(mc => { pct[mc.month] = parseNum(row[mc.idx]); });
+    workloadPctData.push({vertical: wpVertical, queue: wpQueue, type: wfType, pct});
+  }
+
+  // ===== VERSION SHEET (optional) =====
+  const verSheet = wb.Sheets['Version'];
+  if (verSheet) {
+    const verRaw = XLSX.utils.sheet_to_json(verSheet, {header:1});
+    versionHistory = [];
+    // Columns I-N = indices 8-13: Date, Vertical, Group, Queue, Action, Notes/Impact
+    for (let r = 1; r < verRaw.length; r++) {
+      const row = verRaw[r];
+      if (!row) continue;
+      const dateVal = row[8];
+      const vertical = String(row[9] || '').trim();
+      const group = String(row[10] || '').trim();
+      const queue = String(row[11] || '').trim();
+      const action = String(row[12] || '').trim();
+      const notes = String(row[13] || '').trim();
+      // Skip empty rows
+      if (!dateVal && !vertical && !action) continue;
+      // Format date
+      let dateStr = '';
+      if (dateVal instanceof Date) {
+        dateStr = dateVal.toISOString().split('T')[0];
+      } else if (typeof dateVal === 'number') {
+        // Excel serial date
+        const d = new Date((dateVal - 25569) * 86400000);
+        dateStr = d.toISOString().split('T')[0];
+      } else if (dateVal) {
+        dateStr = String(dateVal).split(' ')[0];
+      }
+      versionHistory.push({date: dateStr, vertical, group, queue, action, notes});
+    }
+  }
+
+  // ===== RISK OPS 2026 TARGETS (optional) =====
+  // If present, use Total rows as authoritative monthly targets.
+  riskOpsTargets = null;
+  const riskSheet = wb.Sheets['Risk Ops 2026'];
+  if (riskSheet) {
+    const riskRaw = XLSX.utils.sheet_to_json(riskSheet, {header:1});
+    const row2 = riskRaw[1] || [];
+    const monthCols = {};
+    // Forecast Jan-Dec block is on the left side (cols C:N)
+    for (let c = 2; c <= 13; c++) {
+      const sm = toShortMonth(row2[c]);
+      if (sm) monthCols[sm] = c;
+    }
+    const metricMap = {
+      'Internal Required PROD Hrs': {grp:'int', key:'prodHrs'},
+      'External Required PROD Hrs': {grp:'ext', key:'prodHrs'},
+      'Internal Required SHRINK Hrs': {grp:'int', key:'shrinkHrs'},
+      'External Required SHRINK Hrs': {grp:'ext', key:'shrinkHrs'},
+      'Internal Required TOTAL Hrs': {grp:'int', key:'totalHrs'},
+      'External Required TOTAL Hrs': {grp:'ext', key:'totalHrs'},
+      'Internal Required FTE': {grp:'int', key:'fte'},
+      'External Required FTE': {grp:'ext', key:'fte'}
+    };
+    const makeMonthBucket = () => ({int:{prodHrs:0, shrinkHrs:0, totalHrs:0, fte:0}, ext:{prodHrs:0, shrinkHrs:0, totalHrs:0, fte:0}});
+    const targetsBySection = {};
+    for (let r = 0; r < riskRaw.length; r++) {
+      const row = riskRaw[r] || [];
+      const rawSection = String(row[0] || '').trim();
+      const metric = String(row[1] || '').trim();
+      const map = metricMap[metric];
+      if (!map) continue;
+      if (!rawSection) continue;
+      let section = rawSection === 'I&C' ? 'I & C' : rawSection;
+      if (section !== 'Total') section = canonicalVertical(section);
+      if (!targetsBySection[section]) {
+        targetsBySection[section] = {};
+        Object.keys(monthCols).forEach(m => { targetsBySection[section][m] = makeMonthBucket(); });
+      }
+      Object.entries(monthCols).forEach(([m, c]) => {
+        targetsBySection[section][m][map.grp][map.key] = parseNum(row[c]);
+      });
+    }
+    if (targetsBySection.Total) riskOpsTargets = {bySection: targetsBySection};
+  }
+
+  // ===== BUILD ALL ROWS =====
+  buildRowsVerticalWorkforceAllocation();
+}
+// ===== CALCULATION ENGINE =====
+function calculate(vertical, queue, wfType, month) {
+  const wl = workloadData.find(w => w.vertical === vertical && w.queue === queue);
+  if (!wl) return null;
+  const sd = shrinkData[vertical];
+  if (!sd) return null;
+  const wp = workloadPctData.find(w => w.vertical === vertical && w.queue === queue && w.type === wfType);
+  if (!wp) return null;
+
+  const avgVol = wl.avgVolume[month] || 0;
+  const aht = wl.aht[month] || 0;
+  const wd = workingDays[month];
+  const occ = sd.occupancy[month];
+  const wlPct = wp.pct[month] || 0;
+  const isInternal = wfType === "Internal";
+  const shrinkRate = isInternal ? sd.shrinkInternal[month] : sd.shrinkExternal[month];
+
+  const monthlyVol = avgVol * wd;
+  const totalWork = (aht === 0 || avgVol === 0 || occ === 0) ? 0 : (monthlyVol * aht / 3600 / occ);
+  const prodHrs = wlPct * totalWork;
+  const shrinkHrs = (shrinkRate === 1) ? 0 : (shrinkRate / (1 - shrinkRate)) * prodHrs;
+  const totalHrs = prodHrs + shrinkHrs;
+  const fte = (wd === 0) ? 0 : totalHrs / 8 / wd;
+
+  return { avgVol, wd, monthlyVol, aht, occ, totalWork, wlPct, prodHrs, shrinkRate, shrinkHrs, totalHrs, fte, vertical, queue, wfType, month };
+}
+
+// ===== VERTICAL-LEVEL WORKFORCE ALLOCATION =====
+// Uses workforce % at the vertical+month level and distributes back to queues
+// by (monthly volume * AHT), as requested.
+function buildRowsVerticalWorkforceAllocation() {
+  allRows = [];
+
+  const queuesByVertical = {};
+  workloadData.forEach(w => {
+    if (!queuesByVertical[w.vertical]) queuesByVertical[w.vertical] = [];
+    queuesByVertical[w.vertical].push(w);
+  });
+
+  const typesByVertical = {};
+  workloadPctData.forEach(wp => {
+    if (!typesByVertical[wp.vertical]) typesByVertical[wp.vertical] = new Set();
+    typesByVertical[wp.vertical].add(wp.type);
+  });
+
+  // Average queue-level workforce % to one vertical-level % per type+month.
+  const verticalPct = {};
+  workloadPctData.forEach(wp => {
+    const k = wp.vertical + '|||' + wp.type;
+    if (!verticalPct[k]) {
+      verticalPct[k] = {};
+      months.forEach(m => { verticalPct[k][m] = {sum: 0, count: 0}; });
+    }
+    months.forEach(m => {
+      const v = parseNum(wp.pct[m]);
+      verticalPct[k][m].sum += v;
+      verticalPct[k][m].count += 1;
+    });
+  });
+
+  Object.keys(queuesByVertical).forEach(vertical => {
+    const sd = shrinkData[vertical];
+    if (!sd) return;
+    const queues = queuesByVertical[vertical];
+    const types = typesByVertical[vertical] ? [...typesByVertical[vertical]] : [];
+    if (!types.length) return;
+
+    months.forEach(month => {
+      const wd = workingDays[month] || 0;
+
+      const queueStats = queues.map(q => {
+        const avgVol = q.avgVolume[month] || 0;
+        const aht = q.aht[month] || 0;
+        const occ = sd.occupancy[month] || 0;
+        const monthlyVol = avgVol * wd;
+        const totalWork = (aht === 0 || avgVol === 0 || occ === 0) ? 0 : (monthlyVol * aht / 3600 / occ);
+        const distBasis = monthlyVol * aht; // requested queue distribution basis
+        return {queue: q.queue, avgVol, aht, occ, monthlyVol, totalWork, distBasis};
+      });
+
+      const verticalTotalWork = queueStats.reduce((s, q) => s + q.totalWork, 0);
+      const distSum = queueStats.reduce((s, q) => s + Math.max(0, q.distBasis), 0);
+
+      types.forEach(wfType => {
+        const pctKey = vertical + '|||' + wfType;
+        const pctCell = verticalPct[pctKey] && verticalPct[pctKey][month];
+        const wlPct = pctCell && pctCell.count > 0 ? (pctCell.sum / pctCell.count) : 0;
+        const isInternal = wfType === 'Internal';
+        const shrinkRate = isInternal ? (sd.shrinkInternal[month] || 0) : (sd.shrinkExternal[month] || 0);
+
+        const verticalProdHrs = wlPct * verticalTotalWork;
+        const verticalShrinkHrs = (shrinkRate === 1) ? 0 : (shrinkRate / (1 - shrinkRate)) * verticalProdHrs;
+        const verticalTotalHrs = verticalProdHrs + verticalShrinkHrs;
+        const verticalFte = (wd === 0) ? 0 : verticalTotalHrs / 8 / wd;
+
+        queueStats.forEach((q, idx) => {
+          const share = distSum > 0 ? Math.max(0, q.distBasis) / distSum : (1 / queueStats.length);
+          allRows.push({
+            avgVol: q.avgVol,
+            wd,
+            monthlyVol: q.monthlyVol,
+            aht: q.aht,
+            occ: q.occ,
+            totalWork: q.totalWork,
+            wlPct,
+            prodHrs: verticalProdHrs * share,
+            shrinkRate,
+            shrinkHrs: verticalShrinkHrs * share,
+            totalHrs: verticalTotalHrs * share,
+            fte: verticalFte * share,
+            vertical,
+            queue: q.queue,
+            wfType,
+            month
+          });
+        });
+      });
+    });
+  });
+}
+
+// ===== OPTIONAL CALIBRATION TO RISK OPS 2026 TOTALS =====
+function applyRiskOpsTargetsToRows() {
+  if (!riskOpsTargets || !allRows.length) return;
+
+  const grouped = {};
+  allRows.forEach((r, idx) => {
+    const grp = r.wfType === 'Internal' ? 'int' : 'ext';
+    const totalKey = 'Total|' + r.month + '|' + grp;
+    if (!grouped[totalKey]) grouped[totalKey] = [];
+    grouped[totalKey].push(idx);
+    const sectionKey = r.vertical + '|' + r.month + '|' + grp;
+    if (!grouped[sectionKey]) grouped[sectionKey] = [];
+    grouped[sectionKey].push(idx);
+  });
+
+  const targetsBySection = riskOpsTargets.bySection ? riskOpsTargets.bySection : {Total: riskOpsTargets};
+
+  function calibrateBucket(idxs, target) {
+    if (!idxs.length || !target) return;
+    // PROD Hrs scaling (or weighted allocation when baseline is zero)
+    let curProd = idxs.reduce((s, i) => s + (allRows[i].prodHrs || 0), 0);
+    if (target.prodHrs > 0 && curProd === 0) {
+      const wSum = idxs.reduce((s, i) => s + Math.max(0, allRows[i].wlPct || 0), 0);
+      idxs.forEach(i => {
+        const w = Math.max(0, allRows[i].wlPct || 0);
+        const share = wSum > 0 ? w / wSum : 1 / idxs.length;
+        allRows[i].prodHrs = target.prodHrs * share;
+      });
+    } else if (curProd > 0) {
+      const fProd = target.prodHrs / curProd;
+      idxs.forEach(i => { allRows[i].prodHrs = (allRows[i].prodHrs || 0) * fProd; });
+    }
+
+    // SHRINK Hrs scaling (or mirror distribution when baseline is zero)
+    let curShrink = idxs.reduce((s, i) => s + (allRows[i].shrinkHrs || 0), 0);
+    if (target.shrinkHrs > 0 && curShrink === 0) {
+      const pSum = idxs.reduce((s, i) => s + Math.max(0, allRows[i].prodHrs || 0), 0);
+      idxs.forEach(i => {
+        const p = Math.max(0, allRows[i].prodHrs || 0);
+        const share = pSum > 0 ? p / pSum : 1 / idxs.length;
+        allRows[i].shrinkHrs = target.shrinkHrs * share;
+      });
+    } else if (curShrink > 0) {
+      const fShrink = target.shrinkHrs / curShrink;
+      idxs.forEach(i => { allRows[i].shrinkHrs = (allRows[i].shrinkHrs || 0) * fShrink; });
+    }
+
+    // Force totals and FTE to line up with targets.
+    idxs.forEach(i => {
+      allRows[i].totalHrs = (allRows[i].prodHrs || 0) + (allRows[i].shrinkHrs || 0);
+    });
+    const curTotal = idxs.reduce((s, i) => s + (allRows[i].totalHrs || 0), 0);
+    if (curTotal > 0 && target.totalHrs > 0) {
+      const fTotal = target.totalHrs / curTotal;
+      idxs.forEach(i => {
+        allRows[i].prodHrs *= fTotal;
+        allRows[i].shrinkHrs *= fTotal;
+        allRows[i].totalHrs *= fTotal;
+      });
+    }
+    idxs.forEach(i => {
+      allRows[i].fte = allRows[i].wd > 0 ? allRows[i].totalHrs / 8 / allRows[i].wd : 0;
+    });
+  }
+
+  // Pass 1: vertical sections
+  Object.keys(targetsBySection).forEach(section => {
+    if (section === 'Total') return;
+    const sectionTargets = targetsBySection[section] || {};
+    Object.keys(sectionTargets).forEach(month => {
+      ['int','ext'].forEach(grp => {
+        const idxs = grouped[section + '|' + month + '|' + grp] || [];
+        calibrateBucket(idxs, sectionTargets[month][grp]);
+      });
+    });
+  });
+
+  // Pass 2: reconcile Total section so top-line still matches exactly.
+  const totalTargets = targetsBySection.Total || {};
+  Object.keys(totalTargets).forEach(month => {
+    ['int','ext'].forEach(grp => {
+      const idxs = grouped['Total|' + month + '|' + grp] || [];
+      if (!idxs.length) return;
+      calibrateBucket(idxs, totalTargets[month][grp]);
+    });
+  });
+}
+
+// ===== BUILD INITIAL ROWS =====
+function buildAllRows() {
+  buildRowsVerticalWorkforceAllocation();
+}
+buildAllRows();
+
+// ===== FILTER STATE =====
+let allVerticals = [...new Set(workloadData.map(w=>w.vertical))].sort();
+let allWfTypes = [...new Set(workloadPctData.map(w=>w.type))].sort();
+let allQueues = [...new Set(workloadData.map(w=>w.queue))].sort();
+
+let selectedVerticals = new Set(allVerticals);
+let selectedQueues = new Set(allQueues);
+let selectedWfTypes = new Set(allWfTypes);
+let selectedMonths = new Set(months);
+let activeTab = 'detail';
+let sortCol = -1;
+let sortDir = 1;
+
+// Hierarchy expand/collapse state
+let hierExpandedVerticals = new Set();
+let hierExpandedQueues = new Set();
+let hierNoQueueExpandedVerticals = new Set();
+let wfHierExpandedWf = new Set();
+let wfHierExpandedVerticals = new Set();
+let hrsExpandedWf = new Set();
+let hrsExpandedVert = new Set();
+
+// ===== FORMAT HELPERS =====
+const fmtInt = n => n === 0 ? '0' : n.toLocaleString('en-US', {maximumFractionDigits:0});
+const fmtDec1 = n => n === 0 ? '0.0' : n.toLocaleString('en-US', {minimumFractionDigits:1, maximumFractionDigits:1});
+const fmtDec2 = n => n === 0 ? '0.00' : n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+const fmtPct = n => (n*100).toFixed(1) + '%';
+
+// ===== WF TYPE CSS CLASS =====
+function wfClass(t) {
+  const map = {'Internal':'wf-internal','Con - India':'wf-con-india','Probe - India':'wf-probe-india','ALMS - India':'wf-alms-india','Con - Latam':'wf-con-latam','Sutherland - India':'wf-sutherland-india','Foundever - Latam':'wf-foundever-latam','Foundever - US':'wf-foundever-us','EXL - India':'wf-exl-india'};
+  return map[t] || '';
+}
+
+function wfDotColor(t) {
+  const map = {'Internal':'var(--accent)','Con - India':'var(--teal)','Probe - India':'var(--purple)','ALMS - India':'var(--pink)','Con - Latam':'var(--orange)','Sutherland - India':'var(--yellow)','Foundever - Latam':'var(--red)','Foundever - US':'#60a5fa','EXL - India':'#a3e635'};
+  return map[t] || 'var(--text3)';
+}
+
+// ===== DROPDOWN BUILDER =====
+function buildDropdown(ddEl, items, selectedSet, btnEl, allLabel, onChange) {
+  ddEl.innerHTML = '';
+  const saDiv = document.createElement('div');
+  saDiv.className = 'dropdown-item select-all';
+  const saCb = document.createElement('input');
+  saCb.type = 'checkbox';
+  saCb.checked = selectedSet.size === items.length;
+  saDiv.appendChild(saCb);
+  saDiv.appendChild(document.createTextNode('Select All'));
+  saDiv.addEventListener('click', e => {
+    e.stopPropagation();
+    if (selectedSet.size === items.length) { selectedSet.clear(); saCb.checked = false; }
+    else { items.forEach(i => selectedSet.add(i)); saCb.checked = true; }
+    ddEl.querySelectorAll('.item-cb').forEach(cb => cb.checked = selectedSet.has(cb.dataset.val));
+    updateBtnLabel(btnEl, selectedSet, items, allLabel);
+    onChange();
+  });
+  ddEl.appendChild(saDiv);
+
+  items.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'dropdown-item';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.className = 'item-cb';
+    cb.dataset.val = item;
+    cb.checked = selectedSet.has(item);
+    div.appendChild(cb);
+    div.appendChild(document.createTextNode(item));
+    div.addEventListener('click', e => {
+      e.stopPropagation();
+      if (selectedSet.has(item)) selectedSet.delete(item); else selectedSet.add(item);
+      cb.checked = selectedSet.has(item);
+      saCb.checked = selectedSet.size === items.length;
+      updateBtnLabel(btnEl, selectedSet, items, allLabel);
+      onChange();
+    });
+    ddEl.appendChild(div);
+  });
+  updateBtnLabel(btnEl, selectedSet, items, allLabel);
+}
+
+function updateBtnLabel(btn, sel, items, allLabel) {
+  if (sel.size === items.length || sel.size === 0) btn.textContent = allLabel;
+  else if (sel.size === 1) btn.textContent = [...sel][0];
+  else if (sel.size <= 2) btn.textContent = [...sel].join(', ');
+  else btn.textContent = sel.size + ' selected';
+}
+
+function getFilteredQueues() {
+  return [...new Set(workloadData.filter(w => selectedVerticals.has(w.vertical)).map(w => w.queue))].sort();
+}
+
+function refreshQueueDropdown() {
+  const avail = getFilteredQueues();
+  selectedQueues = new Set([...selectedQueues].filter(q => avail.includes(q)));
+  if (selectedQueues.size === 0) selectedQueues = new Set(avail);
+  buildDropdown(document.getElementById('queueDd'), avail, selectedQueues, document.getElementById('queueBtn'), 'All Queues', render);
+}
+
+// ===== INIT DROPDOWNS =====
+function initFilters() {
+  buildDropdown(document.getElementById('verticalDd'), allVerticals, selectedVerticals, document.getElementById('verticalBtn'), 'All Verticals', () => { refreshQueueDropdown(); render(); });
+  refreshQueueDropdown();
+  buildDropdown(document.getElementById('wfDd'), allWfTypes, selectedWfTypes, document.getElementById('wfBtn'), 'All Types', render);
+  buildDropdown(document.getElementById('monthDd'), months, selectedMonths, document.getElementById('monthBtn'), 'All Months', render);
+}
+
+// Toggle dropdowns
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    const dd = btn.nextElementSibling;
+    document.querySelectorAll('.dropdown').forEach(d => { if (d !== dd) d.classList.remove('open'); });
+    dd.classList.toggle('open');
+  });
+});
+document.addEventListener('click', () => document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('open')));
+
+// ===== TABS =====
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    activeTab = tab.dataset.tab;
+    render();
+  });
+});
+
+// ===== COLUMNS =====
+const columns = [
+  {key:'vertical',label:'Vertical',fmt:v=>v},
+  {key:'queue',label:'Queue',fmt:v=>v},
+  {key:'wfType',label:'Workforce Type',fmt:v=>v},
+  {key:'month',label:'Month',fmt:v=>v},
+  {key:'avgVol',label:'Avg Vol',fmt:fmtInt,num:true},
+  {key:'wd',label:'Work Days',fmt:fmtInt,num:true},
+  {key:'monthlyVol',label:'Monthly Vol',fmt:fmtInt,num:true},
+  {key:'aht',label:'AHT (s)',fmt:fmtInt,num:true},
+  {key:'occ',label:'Occupancy',fmt:fmtPct,num:true},
+  {key:'totalWork',label:'Total Work (hrs)',fmt:fmtDec1,num:true},
+  {key:'wlPct',label:'Workload%',fmt:fmtPct,num:true},
+  {key:'prodHrs',label:'Prod Hrs',fmt:fmtDec1,num:true},
+  {key:'shrinkRate',label:'Shrink Rate',fmt:fmtPct,num:true},
+  {key:'shrinkHrs',label:'Shrink Hrs',fmt:fmtDec1,num:true},
+  {key:'totalHrs',label:'Total Hrs',fmt:fmtDec1,num:true},
+  {key:'fte',label:'FTE',fmt:fmtDec2,num:true}
+];
+
+// ===== RENDER =====
+function getFilteredRows() {
+  return allRows.filter(r =>
+    selectedVerticals.has(r.vertical) &&
+    selectedQueues.has(r.queue) &&
+    selectedWfTypes.has(r.wfType) &&
+    selectedMonths.has(r.month)
+  );
+}
+
+function render() {
+  const filtered = getFilteredRows();
+  document.getElementById('rowCount').textContent = 'Showing ' + filtered.length.toLocaleString() + ' of ' + allRows.length.toLocaleString() + ' rows';
+
+  document.getElementById('detailSection').classList.toggle('section-hidden', activeTab !== 'detail');
+  document.getElementById('pivotVerticalSection').classList.toggle('section-hidden', activeTab !== 'pivotVertical');
+  document.getElementById('pivotVerticalNoQueuesSection').classList.toggle('section-hidden', activeTab !== 'pivotVerticalNoQueues');
+  document.getElementById('pivotWfSection').classList.toggle('section-hidden', activeTab !== 'pivotWf');
+  document.getElementById('hrsByWfSection').classList.toggle('section-hidden', activeTab !== 'hrsByWf');
+  document.getElementById('versionHistorySection').classList.toggle('section-hidden', activeTab !== 'versionHistory');
+
+  if (activeTab === 'detail') renderDetail(filtered);
+  else if (activeTab === 'pivotVertical') renderPivotVertical(filtered);
+  else if (activeTab === 'pivotVerticalNoQueues') renderPivotVerticalNoQueues(filtered);
+  else if (activeTab === 'pivotWf') renderPivotWf(filtered);
+  else if (activeTab === 'hrsByWf') renderHrsByWf(filtered);
+  else if (activeTab === 'versionHistory') renderVersionHistory();
+}
+
+function renderDetail(filtered) {
+  let rows = [...filtered];
+  if (sortCol >= 0) {
+    const col = columns[sortCol];
+    rows.sort((a, b) => {
+      let va = a[col.key], vb = b[col.key];
+      if (typeof va === 'string') return sortDir * va.localeCompare(vb);
+      return sortDir * (va - vb);
+    });
+  }
+
+  const head = document.getElementById('mainHead');
+  head.innerHTML = '';
+  columns.forEach((c, i) => {
+    const th = document.createElement('th');
+    th.textContent = c.label + (sortCol === i ? (sortDir === 1 ? ' ▲' : ' ▼') : '');
+    th.addEventListener('click', () => {
+      if (sortCol === i) sortDir *= -1; else { sortCol = i; sortDir = 1; }
+      render();
+    });
+    head.appendChild(th);
+  });
+
+  const body = document.getElementById('mainBody');
+  body.innerHTML = '';
+
+  const maxRender = 2000;
+  const renderRows = rows.slice(0, maxRender);
+
+  renderRows.forEach(r => {
+    const tr = document.createElement('tr');
+    if (r.avgVol === 0 || r.aht === 0) tr.className = 'zero-row';
+    tr.style.cursor = 'pointer';
+    tr.addEventListener('click', () => showModal(r));
+
+    columns.forEach((c, i) => {
+      const td = document.createElement('td');
+      if (i === 0) td.className = wfClass(r.wfType);
+      if (c.num) td.className = (td.className ? td.className + ' ' : '') + 'num';
+      if (c.key === 'fte') td.className = (td.className ? td.className + ' ' : '') + 'fte';
+      if (c.key === 'wfType') {
+        const badge = document.createElement('span');
+        badge.className = 'wf-badge ' + (r.wfType === 'Internal' ? 'internal' : 'external');
+        badge.textContent = c.fmt(r[c.key]);
+        td.appendChild(badge);
+      } else {
+        td.textContent = c.fmt(r[c.key]);
+      }
+      tr.appendChild(td);
+    });
+    body.appendChild(tr);
+  });
+
+  if (rows.length > 0) {
+    const totals = {avgVol:0,monthlyVol:0,totalWork:0,prodHrs:0,shrinkHrs:0,totalHrs:0,fte:0};
+    rows.forEach(r => { Object.keys(totals).forEach(k => totals[k] += r[k]); });
+    const tr = document.createElement('tr');
+    tr.className = 'totals-row';
+    columns.forEach(c => {
+      const td = document.createElement('td');
+      if (c.key === 'vertical') td.textContent = 'TOTAL';
+      else if (totals[c.key] !== undefined) {
+        td.className = 'num' + (c.key === 'fte' ? ' fte' : '');
+        td.textContent = c.fmt(totals[c.key]);
+      }
+      tr.appendChild(td);
+    });
+    body.appendChild(tr);
+  }
+
+  if (rows.length > maxRender) {
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = columns.length;
+    td.style.cssText = 'text-align:center;color:var(--text3);padding:12px;font-style:italic';
+    td.textContent = 'Showing first ' + maxRender + ' of ' + rows.length + ' rows. Use filters to narrow results.';
+    tr.appendChild(td);
+    body.appendChild(tr);
+  }
+}
+
+// ===== HIERARCHICAL PIVOT BY VERTICAL =====
+function renderPivotVertical(filtered) {
+  const container = document.getElementById('pivotVerticalSection');
+  const activeMonths = months.filter(m => selectedMonths.has(m));
+
+  const tree = {};
+  filtered.forEach(r => {
+    if (!tree[r.vertical]) tree[r.vertical] = {};
+    if (!tree[r.vertical][r.queue]) tree[r.vertical][r.queue] = {};
+    if (!tree[r.vertical][r.queue][r.wfType]) {
+      tree[r.vertical][r.queue][r.wfType] = {};
+      activeMonths.forEach(m => tree[r.vertical][r.queue][r.wfType][m] = 0);
+    }
+    tree[r.vertical][r.queue][r.wfType][r.month] += r.fte;
+  });
+
+  const verticalAgg = {};
+  const queueAgg = {};
+  const grandTotal = {};
+  activeMonths.forEach(m => grandTotal[m] = 0);
+
+  Object.keys(tree).sort().forEach(v => {
+    verticalAgg[v] = {};
+    activeMonths.forEach(m => verticalAgg[v][m] = 0);
+    Object.keys(tree[v]).sort().forEach(q => {
+      const qKey = v + '|||' + q;
+      queueAgg[qKey] = {};
+      activeMonths.forEach(m => queueAgg[qKey][m] = 0);
+      Object.keys(tree[v][q]).sort().forEach(wf => {
+        activeMonths.forEach(m => {
+          const val = tree[v][q][wf][m] || 0;
+          queueAgg[qKey][m] += val;
+          verticalAgg[v][m] += val;
+          grandTotal[m] += val;
+        });
+      });
+    });
+  });
+
+  let html = '<div class="pivot-title">FTE by Vertical — Hierarchical Drill-Down</div>';
+  html += '<div class="hier-table"><table><thead><tr><th style="min-width:280px">Name</th>';
+  activeMonths.forEach(m => html += '<th class="num-col">' + m + '</th>');
+  html += '<th class="num-col">Total</th></tr></thead><tbody id="hierBody">';
+  html += '</tbody></table></div>';
+  container.innerHTML = html;
+
+  const tbody = document.getElementById('hierBody');
+
+  const sortedVerticals = Object.keys(tree).sort();
+
+  sortedVerticals.forEach(v => {
+    const vExpanded = hierExpandedVerticals.has(v);
+    const vTotal = activeMonths.reduce((s, m) => s + (verticalAgg[v][m] || 0), 0);
+
+    const vtr = document.createElement('tr');
+    vtr.className = 'level-1';
+    vtr.dataset.vertical = v;
+    let vtd = document.createElement('td');
+    vtd.className = 'name-cell indent-1';
+    vtd.innerHTML = '<span class="toggle-arrow">' + (vExpanded ? '▼' : '▶') + '</span> ' + escHtml(v);
+    vtr.appendChild(vtd);
+    activeMonths.forEach(m => {
+      const td = document.createElement('td');
+      td.className = 'num-cell';
+      td.textContent = fmtInt(verticalAgg[v][m] || 0);
+      vtr.appendChild(td);
+    });
+    const vTotalTd = document.createElement('td');
+    vTotalTd.className = 'num-cell';
+    vTotalTd.textContent = fmtInt(vTotal);
+    vtr.appendChild(vTotalTd);
+
+    vtr.addEventListener('click', () => {
+      if (hierExpandedVerticals.has(v)) hierExpandedVerticals.delete(v);
+      else hierExpandedVerticals.add(v);
+      renderPivotVertical(filtered);
+    });
+    tbody.appendChild(vtr);
+
+    if (!vExpanded) return;
+
+    const sortedQueues = Object.keys(tree[v]).sort();
+    sortedQueues.forEach(q => {
+      const qKey = v + '|||' + q;
+      const qExpanded = hierExpandedQueues.has(qKey);
+      const qTotal = activeMonths.reduce((s, m) => s + (queueAgg[qKey][m] || 0), 0);
+
+      const qtr = document.createElement('tr');
+      qtr.className = 'level-2';
+      let qtd = document.createElement('td');
+      qtd.className = 'name-cell indent-2';
+      qtd.innerHTML = '<span class="toggle-arrow">' + (qExpanded ? '▼' : '▶') + '</span> ' + escHtml(q);
+      qtr.appendChild(qtd);
+      activeMonths.forEach(m => {
+        const td = document.createElement('td');
+        td.className = 'num-cell';
+        td.textContent = fmtInt(queueAgg[qKey][m] || 0);
+        qtr.appendChild(td);
+      });
+      const qTotalTd = document.createElement('td');
+      qTotalTd.className = 'num-cell';
+      qTotalTd.textContent = fmtInt(qTotal);
+      qtr.appendChild(qTotalTd);
+
+      qtr.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (hierExpandedQueues.has(qKey)) hierExpandedQueues.delete(qKey);
+        else hierExpandedQueues.add(qKey);
+        renderPivotVertical(filtered);
+      });
+      tbody.appendChild(qtr);
+
+      if (!qExpanded) return;
+
+      const sortedWf = Object.keys(tree[v][q]).sort();
+      sortedWf.forEach(wf => {
+        const wfTotal = activeMonths.reduce((s, m) => s + (tree[v][q][wf][m] || 0), 0);
+        const wtr = document.createElement('tr');
+        wtr.className = 'level-3';
+        let wtd = document.createElement('td');
+        wtd.className = 'name-cell indent-3';
+        wtd.innerHTML = '<span class="wf-dot" style="background:' + wfDotColor(wf) + '"></span> ' + escHtml(wf);
+        wtr.appendChild(wtd);
+        activeMonths.forEach(m => {
+          const td = document.createElement('td');
+          td.className = 'num-cell';
+          td.textContent = fmtInt(tree[v][q][wf][m] || 0);
+          wtr.appendChild(td);
+        });
+        const wTotalTd = document.createElement('td');
+        wTotalTd.className = 'num-cell';
+        wTotalTd.textContent = fmtInt(wfTotal);
+        wtr.appendChild(wTotalTd);
+        tbody.appendChild(wtr);
+      });
+    });
+  });
+
+  const gtTotal = activeMonths.reduce((s, m) => s + (grandTotal[m] || 0), 0);
+  const gtr = document.createElement('tr');
+  gtr.className = 'hier-total';
+  const gtd = document.createElement('td');
+  gtd.className = 'name-cell indent-1';
+  gtd.textContent = 'GRAND TOTAL';
+  gtr.appendChild(gtd);
+  activeMonths.forEach(m => {
+    const td = document.createElement('td');
+    td.className = 'num-cell';
+    td.textContent = fmtInt(grandTotal[m] || 0);
+    gtr.appendChild(td);
+  });
+  const gtTotalTd = document.createElement('td');
+  gtTotalTd.className = 'num-cell';
+  gtTotalTd.textContent = fmtInt(gtTotal);
+  gtr.appendChild(gtTotalTd);
+  tbody.appendChild(gtr);
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ===== HIERARCHICAL PIVOT BY VERTICAL (NO QUEUE BREAKOUT) =====
+function renderPivotVerticalNoQueues(filtered) {
+  const container = document.getElementById('pivotVerticalNoQueuesSection');
+  const activeMonths = months.filter(m => selectedMonths.has(m));
+
+  // Build tree: vertical -> wfType -> { month: fte }
+  const tree = {};
+  const verticalAgg = {};
+  const grandTotal = {};
+  activeMonths.forEach(m => grandTotal[m] = 0);
+
+  filtered.forEach(r => {
+    const v = r.vertical;
+    const wf = r.wfType;
+    const m = r.month;
+
+    if (!tree[v]) tree[v] = {};
+    if (!tree[v][wf]) {
+      tree[v][wf] = {};
+      activeMonths.forEach(mm => tree[v][wf][mm] = 0);
+    }
+    tree[v][wf][m] += r.fte;
+
+    if (!verticalAgg[v]) {
+      verticalAgg[v] = {};
+      activeMonths.forEach(mm => verticalAgg[v][mm] = 0);
+    }
+    verticalAgg[v][m] += r.fte;
+    grandTotal[m] += r.fte;
+  });
+
+  container.innerHTML = '<div class="pivot-title">FTE by Vertical → Workforce Type (No Queues)</div><div class="hier-table"><table><thead><tr><th style="min-width:280px">Name</th>' +
+    activeMonths.map(m => '<th class="num-col">' + m + '</th>').join('') +
+    '<th class="num-col">Total</th></tr></thead><tbody id="verticalNoQueueBody"></tbody></table></div>';
+
+  const tbody = document.getElementById('verticalNoQueueBody');
+  const sortedVerticals = Object.keys(tree).sort();
+
+  sortedVerticals.forEach(v => {
+    const vExpanded = hierNoQueueExpandedVerticals.has(v);
+    const vTotal = activeMonths.reduce((s, m) => s + ((verticalAgg[v] && verticalAgg[v][m]) || 0), 0);
+
+    const vtr = document.createElement('tr');
+    vtr.className = 'level-1';
+    const vtd = document.createElement('td');
+    vtd.className = 'name-cell indent-1';
+    vtd.innerHTML = '<span class="toggle-arrow">' + (vExpanded ? '▼' : '▶') + '</span> ' + escHtml(v);
+    vtr.appendChild(vtd);
+    activeMonths.forEach(m => {
+      const td = document.createElement('td');
+      td.className = 'num-cell';
+      td.textContent = fmtInt((verticalAgg[v] && verticalAgg[v][m]) || 0);
+      vtr.appendChild(td);
+    });
+    const vTotalTd = document.createElement('td');
+    vTotalTd.className = 'num-cell';
+    vTotalTd.textContent = fmtInt(vTotal);
+    vtr.appendChild(vTotalTd);
+
+    vtr.addEventListener('click', () => {
+      if (hierNoQueueExpandedVerticals.has(v)) hierNoQueueExpandedVerticals.delete(v);
+      else hierNoQueueExpandedVerticals.add(v);
+      renderPivotVerticalNoQueues(filtered);
+    });
+    tbody.appendChild(vtr);
+
+    if (!vExpanded) return;
+
+    const sortedWf = Object.keys(tree[v]).sort();
+    sortedWf.forEach(wf => {
+      const wfTotal = activeMonths.reduce((s, m) => s + ((tree[v][wf] && tree[v][wf][m]) || 0), 0);
+      const wtr = document.createElement('tr');
+      wtr.className = 'level-2';
+      const wtd = document.createElement('td');
+      wtd.className = 'name-cell indent-2';
+      wtd.innerHTML = '<span class="wf-dot" style="background:' + wfDotColor(wf) + '"></span> ' + escHtml(wf);
+      wtr.appendChild(wtd);
+      activeMonths.forEach(m => {
+        const td = document.createElement('td');
+        td.className = 'num-cell';
+        td.textContent = fmtInt((tree[v][wf] && tree[v][wf][m]) || 0);
+        wtr.appendChild(td);
+      });
+      const wTotalTd = document.createElement('td');
+      wTotalTd.className = 'num-cell';
+      wTotalTd.textContent = fmtInt(wfTotal);
+      wtr.appendChild(wTotalTd);
+      tbody.appendChild(wtr);
+    });
+  });
+
+  const gtTotal = activeMonths.reduce((s, m) => s + (grandTotal[m] || 0), 0);
+  const gtr = document.createElement('tr');
+  gtr.className = 'hier-total';
+  const gtd = document.createElement('td');
+  gtd.className = 'name-cell indent-1';
+  gtd.textContent = 'GRAND TOTAL';
+  gtr.appendChild(gtd);
+  activeMonths.forEach(m => {
+    const td = document.createElement('td');
+    td.className = 'num-cell';
+    td.textContent = fmtInt(grandTotal[m] || 0);
+    gtr.appendChild(td);
+  });
+  const gtTotalTd = document.createElement('td');
+  gtTotalTd.className = 'num-cell';
+  gtTotalTd.textContent = fmtInt(gtTotal);
+  gtr.appendChild(gtTotalTd);
+  tbody.appendChild(gtr);
+}
+
+function renderPivotWf(filtered) {
+  const container = document.getElementById('pivotWfSection');
+  const activeMonths = months.filter(m => selectedMonths.has(m));
+
+  // Build tree: wfType -> vertical -> queue -> { month: fte }
+  const tree = {};
+  const wfAgg = {};    // wfType -> { month: fte }
+  const vertAgg = {};  // wfType|||vertical -> { month: fte }
+  const grandTotal = {};
+  activeMonths.forEach(m => grandTotal[m] = 0);
+
+  filtered.forEach(r => {
+    const wf = r.wfType;
+    const v = r.vertical;
+    const q = r.queue;
+    const m = r.month;
+
+    if (!tree[wf]) tree[wf] = {};
+    if (!tree[wf][v]) tree[wf][v] = {};
+    if (!tree[wf][v][q]) { tree[wf][v][q] = {}; activeMonths.forEach(mm => tree[wf][v][q][mm] = 0); }
+    tree[wf][v][q][m] += r.fte;
+
+    if (!wfAgg[wf]) { wfAgg[wf] = {}; activeMonths.forEach(mm => wfAgg[wf][mm] = 0); }
+    wfAgg[wf][m] += r.fte;
+
+    const vKey = wf + '|||' + v;
+    if (!vertAgg[vKey]) { vertAgg[vKey] = {}; activeMonths.forEach(mm => vertAgg[vKey][mm] = 0); }
+    vertAgg[vKey][m] += r.fte;
+
+    grandTotal[m] += r.fte;
+  });
+
+  // Build table
+  container.innerHTML = '<div class="pivot-title">FTE by Workforce Type × Month</div><div class="hier-table"><table><thead><tr><th>Workforce Type / Vertical / Queue</th>' +
+    activeMonths.map(m => '<th class="num-col">' + m + '</th>').join('') +
+    '<th class="num-col">Total</th></tr></thead><tbody id="wfHierBody"></tbody></table></div>';
+
+  const tbody = document.getElementById('wfHierBody');
+  const sortedWf = Object.keys(tree).sort();
+
+  sortedWf.forEach(wf => {
+    const wfExpanded = wfHierExpandedWf.has(wf);
+    const wfTotal = activeMonths.reduce((s, m) => s + (wfAgg[wf][m] || 0), 0);
+
+    // Level 1 - Workforce Type
+    const wfRow = document.createElement('tr');
+    wfRow.className = 'level-1';
+    let wfTd = document.createElement('td');
+    wfTd.className = 'name-cell indent-1';
+    wfTd.innerHTML = '<span class="toggle-arrow">' + (wfExpanded ? '▼' : '▶') + '</span> <span class="wf-dot" style="background:' + wfDotColor(wf) + '"></span> ' + escHtml(wf);
+    wfRow.appendChild(wfTd);
+    activeMonths.forEach(m => {
+      const td = document.createElement('td');
+      td.className = 'num-cell';
+      td.textContent = fmtInt(wfAgg[wf][m] || 0);
+      wfRow.appendChild(td);
+    });
+    const wfTotalTd = document.createElement('td');
+    wfTotalTd.className = 'num-cell';
+    wfTotalTd.textContent = fmtInt(wfTotal);
+    wfRow.appendChild(wfTotalTd);
+
+    wfRow.addEventListener('click', () => {
+      if (wfHierExpandedWf.has(wf)) wfHierExpandedWf.delete(wf);
+      else wfHierExpandedWf.add(wf);
+      renderPivotWf(filtered);
+    });
+    tbody.appendChild(wfRow);
+
+    if (!wfExpanded) return;
+
+    // Level 2 - Verticals under this workforce type
+    const sortedVerts = Object.keys(tree[wf]).sort();
+    sortedVerts.forEach(v => {
+      const vKey = wf + '|||' + v;
+      const vExpanded = wfHierExpandedVerticals.has(vKey);
+      const vTotal = activeMonths.reduce((s, m) => s + (vertAgg[vKey][m] || 0), 0);
+
+      const vRow = document.createElement('tr');
+      vRow.className = 'level-2';
+      let vTd = document.createElement('td');
+      vTd.className = 'name-cell indent-2';
+      vTd.innerHTML = '<span class="toggle-arrow">' + (vExpanded ? '▼' : '▶') + '</span> ' + escHtml(v);
+      vRow.appendChild(vTd);
+      activeMonths.forEach(m => {
+        const td = document.createElement('td');
+        td.className = 'num-cell';
+        td.textContent = fmtInt(vertAgg[vKey][m] || 0);
+        vRow.appendChild(td);
+      });
+      const vTotalTd = document.createElement('td');
+      vTotalTd.className = 'num-cell';
+      vTotalTd.textContent = fmtInt(vTotal);
+      vRow.appendChild(vTotalTd);
+
+      vRow.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (wfHierExpandedVerticals.has(vKey)) wfHierExpandedVerticals.delete(vKey);
+        else wfHierExpandedVerticals.add(vKey);
+        renderPivotWf(filtered);
+      });
+      tbody.appendChild(vRow);
+
+      if (!vExpanded) return;
+
+      // Level 3 - Queues under this vertical
+      const sortedQueues = Object.keys(tree[wf][v]).sort();
+      sortedQueues.forEach(q => {
+        const qTotal = activeMonths.reduce((s, m) => s + (tree[wf][v][q][m] || 0), 0);
+        const qRow = document.createElement('tr');
+        qRow.className = 'level-3';
+        let qTd = document.createElement('td');
+        qTd.className = 'name-cell indent-3';
+        qTd.textContent = q;
+        qRow.appendChild(qTd);
+        activeMonths.forEach(m => {
+          const td = document.createElement('td');
+          td.className = 'num-cell';
+          td.textContent = fmtInt(tree[wf][v][q][m] || 0);
+          qRow.appendChild(td);
+        });
+        const qTotalTd = document.createElement('td');
+        qTotalTd.className = 'num-cell';
+        qTotalTd.textContent = fmtInt(qTotal);
+        qRow.appendChild(qTotalTd);
+        tbody.appendChild(qRow);
+      });
+    });
+  });
+
+  // Grand total row
+  const gtTotal = activeMonths.reduce((s, m) => s + (grandTotal[m] || 0), 0);
+  const gtr = document.createElement('tr');
+  gtr.className = 'hier-total';
+  const gtd = document.createElement('td');
+  gtd.className = 'name-cell indent-1';
+  gtd.textContent = 'GRAND TOTAL';
+  gtr.appendChild(gtd);
+  activeMonths.forEach(m => {
+    const td = document.createElement('td');
+    td.className = 'num-cell';
+    td.textContent = fmtInt(grandTotal[m] || 0);
+    gtr.appendChild(td);
+  });
+  const gtTotalTd = document.createElement('td');
+  gtTotalTd.className = 'num-cell';
+  gtTotalTd.textContent = fmtInt(gtTotal);
+  gtr.appendChild(gtTotalTd);
+  tbody.appendChild(gtr);
+}
+
+// ===== HOURS BY WORKFORCE (Hierarchical: Workforce → Vertical → Queue) =====
+function renderHrsByWf(filtered) {
+  const container = document.getElementById('hrsByWfSection');
+  const activeMonths = months.filter(m => selectedMonths.has(m));
+  const nMonths = activeMonths.length;
+
+  // Build tree: wf -> vertical -> queue -> { month: {prod, shrink, train, total} }
+  const tree = {};
+  const wfAgg = {};
+  const vertAgg = {};
+  const grandTotal = {};
+  activeMonths.forEach(m => grandTotal[m] = {prod:0, shrink:0, train:0, total:0});
+
+  filtered.forEach(r => {
+    const wf = r.wfType, v = r.vertical, q = r.queue, m = r.month;
+    const trainHrs = 0; // No training data in source
+
+    if (!tree[wf]) tree[wf] = {};
+    if (!tree[wf][v]) tree[wf][v] = {};
+    if (!tree[wf][v][q]) { tree[wf][v][q] = {}; activeMonths.forEach(mm => tree[wf][v][q][mm] = {prod:0, shrink:0, train:0, total:0}); }
+    tree[wf][v][q][m].prod += r.prodHrs;
+    tree[wf][v][q][m].shrink += r.shrinkHrs;
+    tree[wf][v][q][m].train += trainHrs;
+    tree[wf][v][q][m].total += r.totalHrs;
+
+    if (!wfAgg[wf]) { wfAgg[wf] = {}; activeMonths.forEach(mm => wfAgg[wf][mm] = {prod:0, shrink:0, train:0, total:0}); }
+    wfAgg[wf][m].prod += r.prodHrs;
+    wfAgg[wf][m].shrink += r.shrinkHrs;
+    wfAgg[wf][m].train += trainHrs;
+    wfAgg[wf][m].total += r.totalHrs;
+
+    const vKey = wf + '|||' + v;
+    if (!vertAgg[vKey]) { vertAgg[vKey] = {}; activeMonths.forEach(mm => vertAgg[vKey][mm] = {prod:0, shrink:0, train:0, total:0}); }
+    vertAgg[vKey][m].prod += r.prodHrs;
+    vertAgg[vKey][m].shrink += r.shrinkHrs;
+    vertAgg[vKey][m].train += trainHrs;
+    vertAgg[vKey][m].total += r.totalHrs;
+
+    grandTotal[m].prod += r.prodHrs;
+    grandTotal[m].shrink += r.shrinkHrs;
+    grandTotal[m].train += trainHrs;
+    grandTotal[m].total += r.totalHrs;
+  });
+
+  // Build header rows — Row 1: Month names spanning 4 cols each, Row 2: Prod/Shrink/Train/Total
+  let headerRow1 = '<tr class="section-header"><th class="name-hdr" rowspan="2">Workforce / Vertical / Queue</th>';
+  activeMonths.forEach(m => {
+    headerRow1 += '<th colspan="4" class="section-divider" style="text-align:center;font-size:12px;color:var(--text)">' + m + '</th>';
+  });
+  headerRow1 += '</tr>';
+
+  let headerRow2 = '<tr class="month-header">';
+  activeMonths.forEach(m => {
+    headerRow2 += '<th class="section-divider section-prod" style="color:var(--accent)">Prod</th>';
+    headerRow2 += '<th class="section-shrink" style="color:var(--yellow)">Shrink</th>';
+    headerRow2 += '<th class="section-train" style="color:var(--purple)">Train</th>';
+    headerRow2 += '<th class="section-total" style="color:var(--green)">Total</th>';
+  });
+  headerRow2 += '</tr>';
+
+  container.innerHTML = '<div class="pivot-title">Hours by Workforce Type × Month</div><div class="hrs-table"><table>' +
+    '<thead>' + headerRow1 + headerRow2 + '</thead>' +
+    '<tbody id="hrsByWfBody"></tbody></table></div>';
+
+  const tbody = document.getElementById('hrsByWfBody');
+
+  function addDataCells(row, dataByMonth, cls, isL1) {
+    activeMonths.forEach(m => {
+      const d = dataByMonth[m] || {prod:0, shrink:0, train:0, total:0};
+      const tdP = document.createElement('td');
+      tdP.className = (cls ? 'prod-col ' : '') + 'section-divider';
+      tdP.textContent = fmtInt(d.prod);
+      row.appendChild(tdP);
+      const tdS = document.createElement('td');
+      tdS.className = cls ? 'shrink-col' : '';
+      tdS.textContent = fmtInt(d.shrink);
+      row.appendChild(tdS);
+      const tdT = document.createElement('td');
+      tdT.className = cls ? 'train-col' : '';
+      tdT.textContent = fmtInt(d.train);
+      row.appendChild(tdT);
+      const tdTot = document.createElement('td');
+      tdTot.className = cls ? 'total-col' : '';
+      tdTot.style.fontWeight = isL1 ? '700' : '';
+      tdTot.textContent = fmtInt(d.total);
+      row.appendChild(tdTot);
+    });
+  }
+
+  const sortedWf = Object.keys(tree).sort();
+  sortedWf.forEach(wf => {
+    const wfExp = hrsExpandedWf.has(wf);
+
+    // Level 1 - Workforce Type
+    const r1 = document.createElement('tr');
+    r1.className = 'hrs-l1';
+    const td1 = document.createElement('td');
+    td1.className = 'hrs-name';
+    td1.innerHTML = '<span class="toggle-arrow">' + (wfExp ? '▼' : '▶') + '</span> <span class="wf-dot" style="background:' + wfDotColor(wf) + '"></span> ' + escHtml(wf);
+    r1.appendChild(td1);
+    addDataCells(r1, wfAgg[wf], true, true);
+    r1.addEventListener('click', () => {
+      if (hrsExpandedWf.has(wf)) hrsExpandedWf.delete(wf); else hrsExpandedWf.add(wf);
+      renderHrsByWf(filtered);
+    });
+    tbody.appendChild(r1);
+
+    if (!wfExp) return;
+
+    // Level 2 - Verticals
+    Object.keys(tree[wf]).sort().forEach(v => {
+      const vKey = wf + '|||' + v;
+      const vExp = hrsExpandedVert.has(vKey);
+
+      const r2 = document.createElement('tr');
+      r2.className = 'hrs-l2';
+      const td2 = document.createElement('td');
+      td2.className = 'hrs-name';
+      td2.style.paddingLeft = '34px';
+      td2.innerHTML = '<span class="toggle-arrow">' + (vExp ? '▼' : '▶') + '</span> ' + escHtml(v);
+      r2.appendChild(td2);
+      addDataCells(r2, vertAgg[vKey], false, false);
+      r2.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (hrsExpandedVert.has(vKey)) hrsExpandedVert.delete(vKey); else hrsExpandedVert.add(vKey);
+        renderHrsByWf(filtered);
+      });
+      tbody.appendChild(r2);
+
+      if (!vExp) return;
+
+      // Level 3 - Queues
+      Object.keys(tree[wf][v]).sort().forEach(q => {
+        const r3 = document.createElement('tr');
+        r3.className = 'hrs-l3';
+        const td3 = document.createElement('td');
+        td3.className = 'hrs-name';
+        td3.style.paddingLeft = '54px';
+        td3.textContent = q;
+        r3.appendChild(td3);
+        addDataCells(r3, tree[wf][v][q], false, false);
+        tbody.appendChild(r3);
+      });
+    });
+  });
+
+  // Grand total
+  const gtr = document.createElement('tr');
+  gtr.className = 'hrs-grand';
+  const gtd = document.createElement('td');
+  gtd.className = 'hrs-name';
+  gtd.textContent = 'GRAND TOTAL';
+  gtr.appendChild(gtd);
+  addDataCells(gtr, grandTotal, true, true);
+  tbody.appendChild(gtr);
+}
+
+// ===== VERSION HISTORY =====
+function renderVersionHistory() {
+  const container = document.getElementById('versionHistorySection');
+
+  if (!versionHistory || versionHistory.length === 0) {
+    container.innerHTML = '<div class="version-empty">No version history available. Load a Kitchenette file with a "Version" sheet.</div>';
+    return;
+  }
+
+  function actionBadge(action) {
+    const a = (action || '').toLowerCase();
+    if (a.includes('creat')) return '<span class="badge badge-create">' + escHtml(action) + '</span>';
+    if (a.includes('delet') || a.includes('remov')) return '<span class="badge badge-delete">' + escHtml(action) + '</span>';
+    if (a.includes('updat') || a.includes('chang') || a.includes('modif')) return '<span class="badge badge-update">' + escHtml(action) + '</span>';
+    return '<span class="badge badge-other">' + escHtml(action) + '</span>';
+  }
+
+  let html = '<div class="pivot-title">Version History</div><div class="version-table"><table>';
+  html += '<thead><tr><th>Date</th><th>Vertical</th><th>Group</th><th>Queue</th><th>Action</th><th>Notes / Impact</th></tr></thead>';
+  html += '<tbody>';
+
+  const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  function formatDateWithDay(dateStr) {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      const d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+      if (!isNaN(d.getTime())) return dateStr + ' (' + dayNames[d.getDay()] + ')';
+    }
+    return dateStr;
+  }
+
+  versionHistory.forEach(v => {
+    html += '<tr>';
+    html += '<td class="date-col">' + escHtml(formatDateWithDay(v.date || '')) + '</td>';
+    html += '<td>' + escHtml(v.vertical || '') + '</td>';
+    html += '<td>' + escHtml(v.group || '') + '</td>';
+    html += '<td>' + escHtml(v.queue || '') + '</td>';
+    html += '<td class="action-col">' + actionBadge(v.action || '') + '</td>';
+    html += '<td class="notes-col">' + escHtml(v.notes || '') + '</td>';
+    html += '</tr>';
+  });
+
+  html += '</tbody></table></div>';
+  container.innerHTML = html;
+}
+
+// ===== MODAL =====
+function showModal(r) {
+  const mc = document.getElementById('modalContainer');
+  const isInternal = r.wfType === 'Internal';
+  mc.innerHTML = '<div class="modal-overlay" id="modalOverlay"><div class="modal-wrapper"><div class="modal">' +
+    '<h3>' + escHtml(r.vertical) + ' — ' + escHtml(r.queue) + '</h3>' +
+    '<div class="queue-name">' + escHtml(r.wfType) + ' · ' + r.month + '</div>' +
+    '<div class="calc-step"><span class="label">Avg Volume</span><span class="value">' + fmtInt(r.avgVol) + '</span></div>' +
+    '<div class="calc-step"><span class="label">Working Days</span><span class="value">' + r.wd + '</span></div>' +
+    '<div class="calc-step"><span class="label">Monthly Volume = ' + fmtInt(r.avgVol) + ' × ' + r.wd + '</span><span class="value">' + fmtInt(r.monthlyVol) + '</span></div>' +
+    '<div class="calc-step"><span class="label">AHT (seconds)</span><span class="value">' + fmtInt(r.aht) + '</span></div>' +
+    '<div class="calc-step"><span class="label">Occupancy</span><span class="value">' + fmtPct(r.occ) + '</span></div>' +
+    '<div class="calc-step"><span class="label">Total Work = ' + fmtInt(r.monthlyVol) + ' × ' + fmtInt(r.aht) + ' / 3600 / ' + r.occ + '</span><span class="value">' + fmtDec1(r.totalWork) + ' hrs</span></div>' +
+    '<div class="calc-step"><span class="label">Workload%</span><span class="value">' + fmtPct(r.wlPct) + '</span></div>' +
+    '<div class="calc-step"><span class="label">Prod Hrs = ' + fmtPct(r.wlPct) + ' × ' + fmtDec1(r.totalWork) + '</span><span class="value">' + fmtDec1(r.prodHrs) + ' hrs</span></div>' +
+    '<div class="calc-step"><span class="label">Shrink Rate (' + (isInternal ? 'Internal' : 'External') + ')</span><span class="value">' + fmtPct(r.shrinkRate) + '</span></div>' +
+    '<div class="calc-step"><span class="label">Shrink Hrs = (' + r.shrinkRate + ' / ' + fmtDec2(1-r.shrinkRate) + ') × ' + fmtDec1(r.prodHrs) + '</span><span class="value">' + fmtDec1(r.shrinkHrs) + ' hrs</span></div>' +
+    '<div class="calc-step"><span class="label">Total Hrs = ' + fmtDec1(r.prodHrs) + ' + ' + fmtDec1(r.shrinkHrs) + '</span><span class="value">' + fmtDec1(r.totalHrs) + ' hrs</span></div>' +
+    '<div class="calc-step final"><span class="label">FTE = ' + fmtDec1(r.totalHrs) + ' / 8 / ' + r.wd + '</span><span class="value">' + fmtDec2(r.fte) + '</span></div>' +
+    '</div></div></div>';
+  document.getElementById('modalOverlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('modalOverlay')) mc.innerHTML = '';
+  });
+}
+
+// ===== EXPORT CSV =====
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const filtered = getFilteredRows();
+  const headers = columns.map(c => c.label);
+  let csv = headers.join(',') + '\n';
+  filtered.forEach(r => {
+    csv += columns.map(c => {
+      let v = r[c.key];
+      if (typeof v === 'string') return '"' + v.replace(/"/g, '""') + '"';
+      return v;
+    }).join(',') + '\n';
+  });
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'kitchenette_fte_export.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+// ===== FILE LOADING =====
+function rebuildFromData() {
+  allVerticals = [...new Set(workloadData.map(w => w.vertical))].sort();
+  allWfTypes = [...new Set(workloadPctData.map(w => w.type))].sort();
+  allQueues = [...new Set(workloadData.map(w => w.queue))].sort();
+
+  selectedVerticals = new Set(allVerticals);
+  selectedQueues = new Set(allQueues);
+  selectedWfTypes = new Set(allWfTypes);
+  selectedMonths = new Set(months);
+
+  // Reset hierarchy expand states
+  hierExpandedVerticals = new Set();
+  hierExpandedQueues = new Set();
+  hierNoQueueExpandedVerticals = new Set();
+  wfHierExpandedWf = new Set();
+  wfHierExpandedVerticals = new Set();
+  hrsExpandedWf = new Set();
+  hrsExpandedVert = new Set();
+
+  initFilters();
+  render();
+}
+
+function loadFile(file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      parseExcel(e.target.result);
+      lastFile = file;
+      lastFileName = file.name;
+      document.getElementById('fileStatus').textContent = '✓ ' + file.name;
+      document.getElementById('fileStatus').style.color = 'var(--green)';
+      document.getElementById('refreshBtn').style.display = '';
+      rebuildFromData();
+    } catch (err) {
+      document.getElementById('fileStatus').textContent = '✗ Error: ' + err.message;
+      document.getElementById('fileStatus').style.color = 'var(--red)';
+      console.error(err);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// Load button
+document.getElementById('loadBtn').addEventListener('click', () => {
+  document.getElementById('fileInput').click();
+});
+
+document.getElementById('fileInput').addEventListener('change', (e) => {
+  if (e.target.files.length > 0) {
+    loadFile(e.target.files[0]);
+  }
+});
+
+// Refresh button — re-reads the same file if user re-selects it
+document.getElementById('refreshBtn').addEventListener('click', () => {
+  // We can't re-read the same File object due to browser security,
+  // so we open the file picker pre-filtered. User just clicks the same file.
+  document.getElementById('fileInput').value = '';
+  document.getElementById('fileInput').click();
+});
+
+// ===== INIT =====
+document.getElementById('fileStatus').textContent = '✓ Kitchenette_20260402.xlsx (built-in)';
+document.getElementById('fileStatus').style.color = 'var(--green)';
+initFilters();
+render();
+</script>
+</body>
+</html>
