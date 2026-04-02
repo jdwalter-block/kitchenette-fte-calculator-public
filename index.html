@@ -286,12 +286,12 @@ Internal, Con - India, Con - Latam, Probe - India, ALMS - India, Sutherland - In
   </div>
 </div>
 <div class="tabs">
-  <div class="tab active" data-tab="detail">Detail Table</div>
   <div class="tab" data-tab="pivotVertical">FTE by Vertical</div>
-  <div class="tab" data-tab="pivotVerticalNoQueues">FTE by Vertical (No Queues)</div>
+  <div class="tab active" data-tab="pivotVerticalNoQueues">FTE by Vertical (No Queues)</div>
   <div class="tab" data-tab="pivotWf">FTE by Workforce</div>
   <div class="tab" data-tab="hrsByWf">Hours by Workforce</div>
   <div class="tab" data-tab="versionHistory">Version History</div>
+  <div class="tab" data-tab="detail">Detail Table</div>
 </div>
 <div class="content" id="content">
   <div id="detailSection" class="table-wrap">
@@ -804,7 +804,7 @@ let selectedVerticals = new Set(allVerticals);
 let selectedQueues = new Set(allQueues);
 let selectedWfTypes = new Set(allWfTypes);
 let selectedMonths = new Set(months);
-let activeTab = 'detail';
+let activeTab = 'pivotVerticalNoQueues';
 let sortCol = -1;
 let sortDir = 1;
 
