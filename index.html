@@ -289,7 +289,6 @@ Internal, Con - India, Con - Latam, Probe - India, ALMS - India, Sutherland - In
   <div class="tab" data-tab="pivotVertical">FTE by Vertical</div>
   <div class="tab active" data-tab="pivotVerticalNoQueues">FTE by Vertical (No Queues)</div>
   <div class="tab" data-tab="pivotVerticalIntExt">FTE by Vertical (Int/Ext)</div>
-  <div class="tab" data-tab="hrsByVertical">Hours by Vertical</div>
   <div class="tab" data-tab="pivotWf">FTE by Workforce</div>
   <div class="tab" data-tab="hrsByWf">Hours by Workforce</div>
   <div class="tab" data-tab="versionHistory">Version History</div>
@@ -305,7 +304,6 @@ Internal, Con - India, Con - Latam, Probe - India, ALMS - India, Sutherland - In
   <div id="pivotVerticalSection" class="section-hidden"></div>
   <div id="pivotVerticalNoQueuesSection" class="section-hidden"></div>
   <div id="pivotVerticalIntExtSection" class="section-hidden"></div>
-  <div id="hrsByVerticalSection" class="section-hidden"></div>
   <div id="pivotWfSection" class="section-hidden"></div>
   <div id="hrsByWfSection" class="section-hidden"></div>
   <div id="versionHistorySection" class="section-hidden"></div>
@@ -986,7 +984,6 @@ function render() {
   document.getElementById('pivotVerticalSection').classList.toggle('section-hidden', activeTab !== 'pivotVertical');
   document.getElementById('pivotVerticalNoQueuesSection').classList.toggle('section-hidden', activeTab !== 'pivotVerticalNoQueues');
   document.getElementById('pivotVerticalIntExtSection').classList.toggle('section-hidden', activeTab !== 'pivotVerticalIntExt');
-  document.getElementById('hrsByVerticalSection').classList.toggle('section-hidden', activeTab !== 'hrsByVertical');
   document.getElementById('pivotWfSection').classList.toggle('section-hidden', activeTab !== 'pivotWf');
   document.getElementById('hrsByWfSection').classList.toggle('section-hidden', activeTab !== 'hrsByWf');
   document.getElementById('versionHistorySection').classList.toggle('section-hidden', activeTab !== 'versionHistory');
@@ -995,9 +992,8 @@ function render() {
   else if (activeTab === 'pivotVertical') renderPivotVertical(filtered);
   else if (activeTab === 'pivotVerticalNoQueues') renderPivotVerticalNoQueues(filtered);
   else if (activeTab === 'pivotVerticalIntExt') renderPivotVerticalIntExt(filtered);
-  else if (activeTab === 'hrsByVertical') renderHrsByVertical(filtered);
   else if (activeTab === 'pivotWf') renderPivotWf(filtered);
-  else if (activeTab === 'hrsByWf') renderHrsByWf(filtered);
+  else if (activeTab === 'hrsByWf') renderHrsByVertical(filtered);
   else if (activeTab === 'versionHistory') renderVersionHistory();
 }
 
@@ -1662,7 +1658,7 @@ function renderPivotWf(filtered) {
 
 // ===== HOURS BY VERTICAL (Hierarchical: Vertical -> Int/Ext -> Workforce) =====
 function renderHrsByVertical(filtered) {
-  const container = document.getElementById('hrsByVerticalSection');
+  const container = document.getElementById('hrsByWfSection');
   const activeMonths = months.filter(m => selectedMonths.has(m));
 
   // tree: vertical -> group(Int/Ext) -> workforce -> month -> {prod,shrink,total}
