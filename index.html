@@ -288,6 +288,7 @@ Internal, Con - India, Con - Latam, Probe - India, ALMS - India, Sutherland - In
 <div class="tabs">
   <div class="tab" data-tab="pivotVertical">FTE by Vertical</div>
   <div class="tab active" data-tab="pivotVerticalNoQueues">FTE by Vertical (No Queues)</div>
+  <div class="tab" data-tab="pivotVerticalIntExt">FTE by Vertical (Int/Ext)</div>
   <div class="tab" data-tab="pivotWf">FTE by Workforce</div>
   <div class="tab" data-tab="hrsByWf">Hours by Workforce</div>
   <div class="tab" data-tab="versionHistory">Version History</div>
@@ -302,6 +303,7 @@ Internal, Con - India, Con - Latam, Probe - India, ALMS - India, Sutherland - In
   </div>
   <div id="pivotVerticalSection" class="section-hidden"></div>
   <div id="pivotVerticalNoQueuesSection" class="section-hidden"></div>
+  <div id="pivotVerticalIntExtSection" class="section-hidden"></div>
   <div id="pivotWfSection" class="section-hidden"></div>
   <div id="hrsByWfSection" class="section-hidden"></div>
   <div id="versionHistorySection" class="section-hidden"></div>
@@ -812,6 +814,8 @@ let sortDir = 1;
 let hierExpandedVerticals = new Set();
 let hierExpandedQueues = new Set();
 let hierNoQueueExpandedVerticals = new Set();
+let hierIntExtExpandedVerticals = new Set();
+let hierIntExtExpandedGroups = new Set();
 let wfHierExpandedWf = new Set();
 let wfHierExpandedVerticals = new Set();
 let hrsExpandedWf = new Set();
@@ -961,6 +965,7 @@ function render() {
   document.getElementById('detailSection').classList.toggle('section-hidden', activeTab !== 'detail');
   document.getElementById('pivotVerticalSection').classList.toggle('section-hidden', activeTab !== 'pivotVertical');
   document.getElementById('pivotVerticalNoQueuesSection').classList.toggle('section-hidden', activeTab !== 'pivotVerticalNoQueues');
+  document.getElementById('pivotVerticalIntExtSection').classList.toggle('section-hidden', activeTab !== 'pivotVerticalIntExt');
   document.getElementById('pivotWfSection').classList.toggle('section-hidden', activeTab !== 'pivotWf');
   document.getElementById('hrsByWfSection').classList.toggle('section-hidden', activeTab !== 'hrsByWf');
   document.getElementById('versionHistorySection').classList.toggle('section-hidden', activeTab !== 'versionHistory');
@@ -968,6 +973,7 @@ function render() {
   if (activeTab === 'detail') renderDetail(filtered);
   else if (activeTab === 'pivotVertical') renderPivotVertical(filtered);
   else if (activeTab === 'pivotVerticalNoQueues') renderPivotVerticalNoQueues(filtered);
+  else if (activeTab === 'pivotVerticalIntExt') renderPivotVerticalIntExt(filtered);
   else if (activeTab === 'pivotWf') renderPivotWf(filtered);
   else if (activeTab === 'hrsByWf') renderHrsByWf(filtered);
   else if (activeTab === 'versionHistory') renderVersionHistory();
@@ -1304,6 +1310,160 @@ function renderPivotVerticalNoQueues(filtered) {
       wTotalTd.textContent = fmtInt(wfTotal);
       wtr.appendChild(wTotalTd);
       tbody.appendChild(wtr);
+    });
+  });
+
+  const gtTotal = activeMonths.reduce((s, m) => s + (grandTotal[m] || 0), 0);
+  const gtr = document.createElement('tr');
+  gtr.className = 'hier-total';
+  const gtd = document.createElement('td');
+  gtd.className = 'name-cell indent-1';
+  gtd.textContent = 'GRAND TOTAL';
+  gtr.appendChild(gtd);
+  activeMonths.forEach(m => {
+    const td = document.createElement('td');
+    td.className = 'num-cell';
+    td.textContent = fmtInt(grandTotal[m] || 0);
+    gtr.appendChild(td);
+  });
+  const gtTotalTd = document.createElement('td');
+  gtTotalTd.className = 'num-cell';
+  gtTotalTd.textContent = fmtInt(gtTotal);
+  gtr.appendChild(gtTotalTd);
+  tbody.appendChild(gtr);
+}
+
+// ===== HIERARCHICAL PIVOT BY VERTICAL -> INT/EXT -> WORKFORCE =====
+function renderPivotVerticalIntExt(filtered) {
+  const container = document.getElementById('pivotVerticalIntExtSection');
+  const activeMonths = months.filter(m => selectedMonths.has(m));
+
+  // tree: vertical -> group(Int/Ext) -> workforce type -> {month: fte}
+  const tree = {};
+  const verticalAgg = {};
+  const groupAgg = {};
+  const grandTotal = {};
+  activeMonths.forEach(m => grandTotal[m] = 0);
+
+  filtered.forEach(r => {
+    const v = r.vertical;
+    const g = r.wfType === 'Internal' ? 'Int' : 'Ext';
+    const wf = r.wfType;
+    const m = r.month;
+
+    if (!tree[v]) tree[v] = {};
+    if (!tree[v][g]) tree[v][g] = {};
+    if (!tree[v][g][wf]) {
+      tree[v][g][wf] = {};
+      activeMonths.forEach(mm => tree[v][g][wf][mm] = 0);
+    }
+    tree[v][g][wf][m] += r.fte;
+
+    if (!verticalAgg[v]) {
+      verticalAgg[v] = {};
+      activeMonths.forEach(mm => verticalAgg[v][mm] = 0);
+    }
+    verticalAgg[v][m] += r.fte;
+
+    const gKey = v + '|||' + g;
+    if (!groupAgg[gKey]) {
+      groupAgg[gKey] = {};
+      activeMonths.forEach(mm => groupAgg[gKey][mm] = 0);
+    }
+    groupAgg[gKey][m] += r.fte;
+    grandTotal[m] += r.fte;
+  });
+
+  container.innerHTML = '<div class="pivot-title">FTE by Vertical → Int/Ext → Workforce Type</div><div class="hier-table"><table><thead><tr><th style="min-width:300px">Name</th>' +
+    activeMonths.map(m => '<th class="num-col">' + m + '</th>').join('') +
+    '<th class="num-col">Total</th></tr></thead><tbody id="verticalIntExtBody"></tbody></table></div>';
+
+  const tbody = document.getElementById('verticalIntExtBody');
+  const sortedVerticals = Object.keys(tree).sort();
+  const groupOrder = ['Int', 'Ext'];
+
+  sortedVerticals.forEach(v => {
+    const vExpanded = hierIntExtExpandedVerticals.has(v);
+    const vTotal = activeMonths.reduce((s, m) => s + ((verticalAgg[v] && verticalAgg[v][m]) || 0), 0);
+
+    const vtr = document.createElement('tr');
+    vtr.className = 'level-1';
+    const vtd = document.createElement('td');
+    vtd.className = 'name-cell indent-1';
+    vtd.innerHTML = '<span class="toggle-arrow">' + (vExpanded ? '▼' : '▶') + '</span> ' + escHtml(v);
+    vtr.appendChild(vtd);
+    activeMonths.forEach(m => {
+      const td = document.createElement('td');
+      td.className = 'num-cell';
+      td.textContent = fmtInt((verticalAgg[v] && verticalAgg[v][m]) || 0);
+      vtr.appendChild(td);
+    });
+    const vTotalTd = document.createElement('td');
+    vTotalTd.className = 'num-cell';
+    vTotalTd.textContent = fmtInt(vTotal);
+    vtr.appendChild(vTotalTd);
+    vtr.addEventListener('click', () => {
+      if (hierIntExtExpandedVerticals.has(v)) hierIntExtExpandedVerticals.delete(v);
+      else hierIntExtExpandedVerticals.add(v);
+      renderPivotVerticalIntExt(filtered);
+    });
+    tbody.appendChild(vtr);
+
+    if (!vExpanded) return;
+
+    groupOrder.forEach(g => {
+      if (!tree[v][g]) return;
+      const gKey = v + '|||' + g;
+      const gExpanded = hierIntExtExpandedGroups.has(gKey);
+      const gTotal = activeMonths.reduce((s, m) => s + ((groupAgg[gKey] && groupAgg[gKey][m]) || 0), 0);
+
+      const gtr = document.createElement('tr');
+      gtr.className = 'level-2';
+      const gtd = document.createElement('td');
+      gtd.className = 'name-cell indent-2';
+      gtd.innerHTML = '<span class="toggle-arrow">' + (gExpanded ? '▼' : '▶') + '</span> ' + escHtml(g);
+      gtr.appendChild(gtd);
+      activeMonths.forEach(m => {
+        const td = document.createElement('td');
+        td.className = 'num-cell';
+        td.textContent = fmtInt((groupAgg[gKey] && groupAgg[gKey][m]) || 0);
+        gtr.appendChild(td);
+      });
+      const gTotalTd = document.createElement('td');
+      gTotalTd.className = 'num-cell';
+      gTotalTd.textContent = fmtInt(gTotal);
+      gtr.appendChild(gTotalTd);
+      gtr.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (hierIntExtExpandedGroups.has(gKey)) hierIntExtExpandedGroups.delete(gKey);
+        else hierIntExtExpandedGroups.add(gKey);
+        renderPivotVerticalIntExt(filtered);
+      });
+      tbody.appendChild(gtr);
+
+      if (!gExpanded) return;
+
+      const sortedWf = Object.keys(tree[v][g]).sort();
+      sortedWf.forEach(wf => {
+        const wfTotal = activeMonths.reduce((s, m) => s + ((tree[v][g][wf] && tree[v][g][wf][m]) || 0), 0);
+        const wtr = document.createElement('tr');
+        wtr.className = 'level-3';
+        const wtd = document.createElement('td');
+        wtd.className = 'name-cell indent-3';
+        wtd.innerHTML = '<span class="wf-dot" style="background:' + wfDotColor(wf) + '"></span> ' + escHtml(wf);
+        wtr.appendChild(wtd);
+        activeMonths.forEach(m => {
+          const td = document.createElement('td');
+          td.className = 'num-cell';
+          td.textContent = fmtInt((tree[v][g][wf] && tree[v][g][wf][m]) || 0);
+          wtr.appendChild(td);
+        });
+        const wTotalTd = document.createElement('td');
+        wTotalTd.className = 'num-cell';
+        wTotalTd.textContent = fmtInt(wfTotal);
+        wtr.appendChild(wTotalTd);
+        tbody.appendChild(wtr);
+      });
     });
   });
 
@@ -1743,6 +1903,8 @@ function rebuildFromData() {
   hierExpandedVerticals = new Set();
   hierExpandedQueues = new Set();
   hierNoQueueExpandedVerticals = new Set();
+  hierIntExtExpandedVerticals = new Set();
+  hierIntExtExpandedGroups = new Set();
   wfHierExpandedWf = new Set();
   wfHierExpandedVerticals = new Set();
   hrsExpandedWf = new Set();
