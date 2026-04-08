@@ -291,6 +291,7 @@ Internal, Con - India, Con - Latam, Probe - India, ALMS - India, Sutherland - In
   <div class="tab" data-tab="pivotVerticalIntExt">FTE by Vertical (Int/Ext)</div>
   <div class="tab" data-tab="pivotWf">FTE by Workforce</div>
   <div class="tab" data-tab="hrsByWf">Hours by Workforce</div>
+  <div class="tab" data-tab="riskVariance">Risk Ops Variance</div>
   <div class="tab" data-tab="versionHistory">Version History</div>
   <div class="tab" data-tab="detail">Detail Table</div>
 </div>
@@ -306,6 +307,7 @@ Internal, Con - India, Con - Latam, Probe - India, ALMS - India, Sutherland - In
   <div id="pivotVerticalIntExtSection" class="section-hidden"></div>
   <div id="pivotWfSection" class="section-hidden"></div>
   <div id="hrsByWfSection" class="section-hidden"></div>
+  <div id="riskVarianceSection" class="section-hidden"></div>
   <div id="versionHistorySection" class="section-hidden"></div>
 </div>
 <div id="modalContainer"></div>
@@ -330,6 +332,7 @@ let workloadPctData = [{"vertical":"Afterpay","queue":"Risk - Support Ops / Inve
 let allRows = [];
 let versionHistory = [{"date":"2026-03-26","vertical":"ALL","group":"","queue":"ALL","action":"File Creation","notes":"Upload 3/26"}];
 let riskOpsTargets = null;
+let riskOpsVarianceTargets = [{"vertical":"ATO","group":"Ext","wfType":"Con - India","month":"Apr","prod":10530.81079,"shrink":1714.318036,"total":12316.55874817},{"vertical":"ATO","group":"Ext","wfType":"Con - India","month":"May","prod":12913.69499,"shrink":2102.229417,"total":15103.51729236},{"vertical":"ATO","group":"Ext","wfType":"Con - India","month":"Jun","prod":12483.23849,"shrink":2032.155103,"total":14602.98648236},{"vertical":"ATO","group":"Ext","wfType":"Con - India","month":"Jul","prod":11530.08481,"shrink":1876.990551,"total":13485.28329961},{"vertical":"ATO","group":"Ext","wfType":"Con - India","month":"Aug","prod":11914.42097,"shrink":1939.556902,"total":13932.18580961},{"vertical":"ATO","group":"Ext","wfType":"Con - India","month":"Sep","prod":11145.74865,"shrink":1814.424199,"total":13038.38078961},{"vertical":"ATO","group":"Ext","wfType":"Con - India","month":"Oct","prod":11530.08481,"shrink":1876.990551,"total":13485.28329961},{"vertical":"ATO","group":"Ext","wfType":"Con - India","month":"Nov","prod":10761.41249,"shrink":1751.857847,"total":12591.478279609999},{"vertical":"ATO","group":"Ext","wfType":"Con - India","month":"Dec","prod":11530.08481,"shrink":1876.990551,"total":13485.28329961},{"vertical":"ATO","group":"Int","wfType":"Internal","month":"Apr","prod":3843.361603,"shrink":1647.154973,"total":5490.516576},{"vertical":"ATO","group":"Int","wfType":"Internal","month":"May","prod":3843.361603,"shrink":1647.154973,"total":5490.516576},{"vertical":"ATO","group":"Int","wfType":"Internal","month":"Jun","prod":3715.24955,"shrink":1592.249807,"total":5307.499357},{"vertical":"ATO","group":"Int","wfType":"Internal","month":"Jul","prod":3843.361603,"shrink":1647.154973,"total":5490.516576},{"vertical":"ATO","group":"Int","wfType":"Internal","month":"Aug","prod":3971.473657,"shrink":1702.060139,"total":5673.533796},{"vertical":"ATO","group":"Int","wfType":"Internal","month":"Sep","prod":3715.24955,"shrink":1592.249807,"total":5307.499357},{"vertical":"ATO","group":"Int","wfType":"Internal","month":"Oct","prod":3843.361603,"shrink":1647.154973,"total":5490.516576},{"vertical":"ATO","group":"Int","wfType":"Internal","month":"Nov","prod":3587.137497,"shrink":1537.344641,"total":5124.482138},{"vertical":"ATO","group":"Int","wfType":"Internal","month":"Dec","prod":3843.361603,"shrink":1647.154973,"total":5490.516576},{"vertical":"Afterpay","group":"Ext","wfType":"Con - India","month":"Jun","prod":2738.282259,"shrink":445.7668793,"total":3203.2632276199997},{"vertical":"Afterpay","group":"Ext","wfType":"Con - India","month":"Jul","prod":5665.411569,"shrink":922.276302,"total":6626.11605025},{"vertical":"Afterpay","group":"Ext","wfType":"Con - India","month":"Aug","prod":8781.387933,"shrink":1429.528268,"total":10268.55846887},{"vertical":"Afterpay","group":"Ext","wfType":"Con - India","month":"Sep","prod":10953.12903,"shrink":1783.067517,"total":12813.0529085},{"vertical":"Afterpay","group":"Ext","wfType":"Con - India","month":"Oct","prod":11330.82314,"shrink":1844.552604,"total":13252.232098499999},{"vertical":"Afterpay","group":"Ext","wfType":"Con - India","month":"Nov","prod":10575.43493,"shrink":1721.58243,"total":12373.873718499999},{"vertical":"Afterpay","group":"Ext","wfType":"Con - India","month":"Dec","prod":11330.82314,"shrink":1844.552604,"total":13252.232098499999},{"vertical":"Afterpay","group":"Ext","wfType":"Probe - India","month":"Apr","prod":15338.57725,"shrink":2496.977692,"total":17939.595677200003},{"vertical":"Afterpay","group":"Ext","wfType":"Probe - India","month":"May","prod":15842.16939,"shrink":2578.957807,"total":18528.583775299998},{"vertical":"Afterpay","group":"Ext","wfType":"Probe - India","month":"Jun","prod":17342.4543,"shrink":2823.190236,"total":20287.3337743},{"vertical":"Afterpay","group":"Ext","wfType":"Probe - India","month":"Jul","prod":15107.76419,"shrink":2459.403472,"total":17669.6428047},{"vertical":"Afterpay","group":"Ext","wfType":"Probe - India","month":"Aug","prod":12684.22701,"shrink":2064.874165,"total":14832.36223504},{"vertical":"Afterpay","group":"Ext","wfType":"Probe - India","month":"Sep","prod":9127.607528,"shrink":1485.889598,"total":10677.54409542},{"vertical":"Afterpay","group":"Ext","wfType":"Probe - India","month":"Oct","prod":9442.352616,"shrink":1537.12717,"total":11043.52675542},{"vertical":"Afterpay","group":"Ext","wfType":"Probe - India","month":"Nov","prod":8812.862441,"shrink":1434.652025,"total":10311.56143542},{"vertical":"Afterpay","group":"Ext","wfType":"Probe - India","month":"Dec","prod":9442.352616,"shrink":1537.12717,"total":11043.52675542},{"vertical":"Afterpay","group":"Int","wfType":"Internal","month":"Apr","prod":209.8300581,"shrink":89.92716777,"total":299.7572259},{"vertical":"Afterpay","group":"Int","wfType":"Internal","month":"May","prod":209.8300581,"shrink":89.92716777,"total":299.7572259},{"vertical":"Afterpay","group":"Int","wfType":"Internal","month":"Jun","prod":202.8357229,"shrink":86.92959551,"total":289.7653184},{"vertical":"Afterpay","group":"Int","wfType":"Internal","month":"Jul","prod":209.8300581,"shrink":89.92716777,"total":299.7572259},{"vertical":"Afterpay","group":"Int","wfType":"Internal","month":"Aug","prod":216.8243934,"shrink":92.92474003,"total":309.7491334},{"vertical":"Afterpay","group":"Int","wfType":"Internal","month":"Sep","prod":202.8357229,"shrink":86.92959551,"total":289.7653184},{"vertical":"Afterpay","group":"Int","wfType":"Internal","month":"Oct","prod":209.8300581,"shrink":89.92716777,"total":299.7572259},{"vertical":"Afterpay","group":"Int","wfType":"Internal","month":"Nov","prod":195.8413876,"shrink":83.93202325,"total":279.7734108},{"vertical":"Afterpay","group":"Int","wfType":"Internal","month":"Dec","prod":209.8300581,"shrink":89.92716777,"total":299.7572259},{"vertical":"Appeals","group":"Ext","wfType":"ALMS - India","month":"Apr","prod":21679.56268,"shrink":3529.231135,"total":25355.8451173},{"vertical":"Appeals","group":"Ext","wfType":"ALMS - India","month":"May","prod":21679.56268,"shrink":3529.231135,"total":25355.8451173},{"vertical":"Appeals","group":"Ext","wfType":"ALMS - India","month":"Jun","prod":19042.15143,"shrink":3099.885117,"total":22275.6522878},{"vertical":"Appeals","group":"Ext","wfType":"ALMS - India","month":"Jul","prod":19698.77734,"shrink":3206.777707,"total":23039.170787799998},{"vertical":"Appeals","group":"Ext","wfType":"ALMS - India","month":"Aug","prod":20355.40326,"shrink":3313.670297,"total":23802.6892878},{"vertical":"Appeals","group":"Ext","wfType":"ALMS - India","month":"Sep","prod":19042.15143,"shrink":3099.885117,"total":22275.6522878},{"vertical":"Appeals","group":"Ext","wfType":"ALMS - India","month":"Oct","prod":19698.77734,"shrink":3206.777707,"total":23039.170787799998},{"vertical":"Appeals","group":"Ext","wfType":"ALMS - India","month":"Nov","prod":18385.52552,"shrink":2992.992527,"total":21512.133787799998},{"vertical":"Appeals","group":"Ext","wfType":"ALMS - India","month":"Dec","prod":19698.77734,"shrink":3206.777707,"total":23039.170787799998},{"vertical":"Appeals","group":"Int","wfType":"Internal","month":"Apr","prod":2840.770283,"shrink":1217.472978,"total":4058.243261},{"vertical":"Appeals","group":"Int","wfType":"Internal","month":"May","prod":2840.770283,"shrink":1217.472978,"total":4058.243261},{"vertical":"Appeals","group":"Int","wfType":"Internal","month":"Jun","prod":2840.34849,"shrink":1217.29221,"total":4057.6407},{"vertical":"Appeals","group":"Int","wfType":"Internal","month":"Jul","prod":2938.291541,"shrink":1259.267803,"total":4197.559345},{"vertical":"Appeals","group":"Int","wfType":"Internal","month":"Aug","prod":3036.234593,"shrink":1301.243397,"total":4337.47799},{"vertical":"Appeals","group":"Int","wfType":"Internal","month":"Sep","prod":2840.34849,"shrink":1217.29221,"total":4057.6407},{"vertical":"Appeals","group":"Int","wfType":"Internal","month":"Oct","prod":2938.291541,"shrink":1259.267803,"total":4197.559345},{"vertical":"Appeals","group":"Int","wfType":"Internal","month":"Nov","prod":2742.405439,"shrink":1175.316617,"total":3917.722055},{"vertical":"Appeals","group":"Int","wfType":"Internal","month":"Dec","prod":2938.291541,"shrink":1259.267803,"total":4197.559345},{"vertical":"BIT","group":"Int","wfType":"Internal","month":"Apr","prod":2568.792222,"shrink":1383.195812,"total":3951.988034},{"vertical":"BIT","group":"Int","wfType":"Internal","month":"May","prod":2654.465556,"shrink":1429.327607,"total":4083.793162},{"vertical":"BIT","group":"Int","wfType":"Internal","month":"Jun","prod":2568.792222,"shrink":1383.195812,"total":3951.988034},{"vertical":"BIT","group":"Int","wfType":"Internal","month":"Jul","prod":2654.465556,"shrink":1429.327607,"total":4083.793162},{"vertical":"BIT","group":"Int","wfType":"Internal","month":"Aug","prod":2654.465556,"shrink":1429.327607,"total":4083.793162},{"vertical":"BIT","group":"Int","wfType":"Internal","month":"Sep","prod":2568.792222,"shrink":1383.195812,"total":3951.988034},{"vertical":"BIT","group":"Int","wfType":"Internal","month":"Oct","prod":2654.465556,"shrink":1429.327607,"total":4083.793162},{"vertical":"BIT","group":"Int","wfType":"Internal","month":"Nov","prod":2568.792222,"shrink":1383.195812,"total":3951.988034},{"vertical":"BIT","group":"Int","wfType":"Internal","month":"Dec","prod":2654.465556,"shrink":1429.327607,"total":4083.793162},{"vertical":"Banking","group":"Ext","wfType":"Con - India","month":"Apr","prod":3539.204612,"shrink":576.149588,"total":4139.36043284},{"vertical":"Banking","group":"Ext","wfType":"Con - India","month":"May","prod":3539.204612,"shrink":576.149588,"total":4139.36043284},{"vertical":"Banking","group":"Ext","wfType":"Con - India","month":"Jun","prod":4704.192797,"shrink":765.7988274,"total":5503.00019515},{"vertical":"Banking","group":"Ext","wfType":"Con - India","month":"Jul","prod":4866.406342,"shrink":792.2056836,"total":5691.620595150001},{"vertical":"Banking","group":"Ext","wfType":"Con - India","month":"Aug","prod":5028.619887,"shrink":818.6125397,"total":5880.24099615},{"vertical":"Banking","group":"Ext","wfType":"Con - India","month":"Sep","prod":4704.192797,"shrink":765.7988274,"total":5503.00019515},{"vertical":"Banking","group":"Ext","wfType":"Con - India","month":"Oct","prod":4866.406342,"shrink":792.2056836,"total":5691.620595150001},{"vertical":"Banking","group":"Ext","wfType":"Con - India","month":"Nov","prod":4541.979252,"shrink":739.3919713,"total":5314.379794150001},{"vertical":"Banking","group":"Ext","wfType":"Con - India","month":"Dec","prod":4866.406342,"shrink":792.2056836,"total":5691.620595150001},{"vertical":"Banking","group":"Int","wfType":"Internal","month":"Apr","prod":2506.9366,"shrink":1074.4014,"total":3581.338001},{"vertical":"Banking","group":"Int","wfType":"Internal","month":"May","prod":2506.9366,"shrink":1074.4014,"total":3581.338001},{"vertical":"Banking","group":"Int","wfType":"Internal","month":"Jun","prod":2423.372047,"shrink":1038.58802,"total":3461.960067},{"vertical":"Banking","group":"Int","wfType":"Internal","month":"Jul","prod":2506.9366,"shrink":1074.4014,"total":3581.338001},{"vertical":"Banking","group":"Int","wfType":"Internal","month":"Aug","prod":2590.501154,"shrink":1110.21478,"total":3700.715934},{"vertical":"Banking","group":"Int","wfType":"Internal","month":"Sep","prod":2423.372047,"shrink":1038.58802,"total":3461.960067},{"vertical":"Banking","group":"Int","wfType":"Internal","month":"Oct","prod":2506.9366,"shrink":1074.4014,"total":3581.338001},{"vertical":"Banking","group":"Int","wfType":"Internal","month":"Nov","prod":2339.807494,"shrink":1002.77464,"total":3342.582134},{"vertical":"Banking","group":"Int","wfType":"Internal","month":"Dec","prod":2506.9366,"shrink":1074.4014,"total":3581.338001},{"vertical":"Disputes","group":"Ext","wfType":"Con - India","month":"Apr","prod":29084.26762,"shrink":4734.648218,"total":34016.1928491},{"vertical":"Disputes","group":"Ext","wfType":"Con - India","month":"May","prod":35913.41151,"shrink":5846.369316,"total":42003.3795515},{"vertical":"Disputes","group":"Ext","wfType":"Con - India","month":"Jun","prod":36113.33191,"shrink":5878.914497,"total":42245.647897},{"vertical":"Disputes","group":"Ext","wfType":"Con - India","month":"Jul","prod":37358.61922,"shrink":6081.635687,"total":43693.656397000006},{"vertical":"Disputes","group":"Ext","wfType":"Con - India","month":"Aug","prod":38603.90653,"shrink":6284.356877,"total":45141.664887000006},{"vertical":"Disputes","group":"Ext","wfType":"Con - India","month":"Sep","prod":36113.33191,"shrink":5878.914497,"total":42245.647897},{"vertical":"Disputes","group":"Ext","wfType":"Con - India","month":"Oct","prod":37358.61922,"shrink":6081.635687,"total":43693.656397000006},{"vertical":"Disputes","group":"Ext","wfType":"Con - India","month":"Nov","prod":34868.04461,"shrink":5676.193308,"total":40797.639397000006},{"vertical":"Disputes","group":"Ext","wfType":"Con - India","month":"Dec","prod":37358.61922,"shrink":6081.635687,"total":43693.656397000006},{"vertical":"Disputes","group":"Ext","wfType":"Con - Latam","month":"Apr","prod":37909.83849,"shrink":6171.369056,"total":44338.3479173},{"vertical":"Disputes","group":"Ext","wfType":"Con - Latam","month":"May","prod":38659.30616,"shrink":6293.375421,"total":45214.9055559},{"vertical":"Disputes","group":"Ext","wfType":"Con - Latam","month":"Jun","prod":37370.66262,"shrink":6083.59624,"total":43716.4828359},{"vertical":"Disputes","group":"Ext","wfType":"Con - Latam","month":"Jul","prod":38659.30616,"shrink":6293.375421,"total":45214.9055559},{"vertical":"Disputes","group":"Ext","wfType":"Con - Latam","month":"Aug","prod":8661.611523,"shrink":1410.029783,"total":10128.49734963},{"vertical":"Disputes","group":"Ext","wfType":"Con - Latam","month":"Sep","prod":8102.797876,"shrink":1319.060119,"total":9478.71403463},{"vertical":"Disputes","group":"Ext","wfType":"Con - Latam","month":"Oct","prod":8382.204699,"shrink":1364.544951,"total":9803.60568963},{"vertical":"Disputes","group":"Ext","wfType":"Con - Latam","month":"Nov","prod":7823.391053,"shrink":1273.575288,"total":9153.82237963},{"vertical":"Disputes","group":"Ext","wfType":"Con - Latam","month":"Dec","prod":8382.204699,"shrink":1364.544951,"total":9803.60568963},{"vertical":"Disputes","group":"Ext","wfType":"Sutherland - India","month":"Apr","prod":14709.28477,"shrink":2394.534731,"total":17203.591790450002},{"vertical":"Disputes","group":"Ext","wfType":"Sutherland - India","month":"May","prod":15030.16015,"shrink":2446.770257,"total":17578.879170700002},{"vertical":"Disputes","group":"Ext","wfType":"Sutherland - India","month":"Jun","prod":18510.70204,"shrink":3013.3701,"total":21653.9587823},{"vertical":"Disputes","group":"Ext","wfType":"Sutherland - India","month":"Jul","prod":19149.00211,"shrink":3117.279414,"total":22396.1681723},{"vertical":"Disputes","group":"Ext","wfType":"Sutherland - India","month":"Aug","prod":19787.30219,"shrink":3221.188728,"total":23138.3775523},{"vertical":"Disputes","group":"Ext","wfType":"Sutherland - India","month":"Sep","prod":18510.70204,"shrink":3013.3701,"total":21653.9587823},{"vertical":"Disputes","group":"Ext","wfType":"Sutherland - India","month":"Oct","prod":19149.00211,"shrink":3117.279414,"total":22396.1681723},{"vertical":"Disputes","group":"Ext","wfType":"Sutherland - India","month":"Nov","prod":17872.40197,"shrink":2909.460786,"total":20911.7494023},{"vertical":"Disputes","group":"Ext","wfType":"Sutherland - India","month":"Dec","prod":19149.00211,"shrink":3117.279414,"total":22396.1681723},{"vertical":"Disputes","group":"Int","wfType":"Internal","month":"Apr","prod":7354.642387,"shrink":3151.989595,"total":10506.63198},{"vertical":"Disputes","group":"Int","wfType":"Internal","month":"May","prod":7370.559305,"shrink":3158.811131,"total":10529.37044},{"vertical":"Disputes","group":"Int","wfType":"Internal","month":"Jun","prod":7124.873994,"shrink":3053.517426,"total":10178.39142},{"vertical":"Disputes","group":"Int","wfType":"Internal","month":"Jul","prod":7370.559305,"shrink":3158.811131,"total":10529.37044},{"vertical":"Disputes","group":"Int","wfType":"Internal","month":"Aug","prod":7616.244615,"shrink":3264.104835,"total":10880.34945},{"vertical":"Disputes","group":"Int","wfType":"Internal","month":"Sep","prod":7124.873994,"shrink":3053.517426,"total":10178.39142},{"vertical":"Disputes","group":"Int","wfType":"Internal","month":"Oct","prod":7370.559305,"shrink":3158.811131,"total":10529.37044},{"vertical":"Disputes","group":"Int","wfType":"Internal","month":"Nov","prod":6879.188684,"shrink":2948.223722,"total":9827.412406},{"vertical":"Disputes","group":"Int","wfType":"Internal","month":"Dec","prod":7370.559305,"shrink":3158.811131,"total":10529.37044},{"vertical":"Foundations","group":"Ext","wfType":"Foundever - Latam","month":"Apr","prod":954.0,"shrink":155.3023256,"total":1115.773256233},{"vertical":"Foundations","group":"Ext","wfType":"Foundever - Latam","month":"May","prod":954.0,"shrink":155.3023256,"total":1115.773256233},{"vertical":"Foundations","group":"Ext","wfType":"Foundever - Latam","month":"Jun","prod":922.2,"shrink":150.1255814,"total":1078.796511233},{"vertical":"Foundations","group":"Ext","wfType":"Foundever - US","month":"Apr","prod":810.0,"shrink":131.8604651,"total":947.354651147},{"vertical":"Foundations","group":"Ext","wfType":"Foundever - US","month":"May","prod":810.0,"shrink":131.8604651,"total":947.354651147},{"vertical":"Foundations","group":"Ext","wfType":"Foundever - US","month":"Jun","prod":783.0,"shrink":127.4651163,"total":915.959302347},{"vertical":"Foundations","group":"Ext","wfType":"Sutherland - India","month":"Apr","prod":2820.0,"shrink":459.0697674,"total":3298.1976739799998},{"vertical":"Foundations","group":"Ext","wfType":"Sutherland - India","month":"May","prod":2820.0,"shrink":459.0697674,"total":3298.1976739799998},{"vertical":"Foundations","group":"Ext","wfType":"Sutherland - India","month":"Jun","prod":2726.0,"shrink":443.7674419,"total":3188.8953489799997},{"vertical":"Foundations","group":"Ext","wfType":"Sutherland - India","month":"Jul","prod":3912.0,"shrink":636.8372093,"total":4575.37209272},{"vertical":"Foundations","group":"Ext","wfType":"Sutherland - India","month":"Aug","prod":4042.4,"shrink":658.0651163,"total":4726.99999972},{"vertical":"Foundations","group":"Ext","wfType":"Sutherland - India","month":"Sep","prod":3781.6,"shrink":615.6093023,"total":4423.74418572},{"vertical":"Foundations","group":"Ext","wfType":"Sutherland - India","month":"Oct","prod":3912.0,"shrink":636.8372093,"total":4575.37209272},{"vertical":"Foundations","group":"Ext","wfType":"Sutherland - India","month":"Nov","prod":3651.2,"shrink":594.3813953,"total":4272.11627872},{"vertical":"Foundations","group":"Ext","wfType":"Sutherland - India","month":"Dec","prod":3912.0,"shrink":636.8372093,"total":4575.37209272},{"vertical":"Foundations","group":"Int","wfType":"Internal","month":"Apr","prod":2088.0,"shrink":1124.307692,"total":3212.307692},{"vertical":"Foundations","group":"Int","wfType":"Internal","month":"May","prod":2088.0,"shrink":1124.307692,"total":3212.307692},{"vertical":"Foundations","group":"Int","wfType":"Internal","month":"Jun","prod":2018.4,"shrink":1086.830769,"total":3105.230769},{"vertical":"Foundations","group":"Int","wfType":"Internal","month":"Jul","prod":2088.0,"shrink":1124.307692,"total":3212.307692},{"vertical":"Foundations","group":"Int","wfType":"Internal","month":"Aug","prod":2157.6,"shrink":1161.784615,"total":3319.384615},{"vertical":"Foundations","group":"Int","wfType":"Internal","month":"Sep","prod":2018.4,"shrink":1086.830769,"total":3105.230769},{"vertical":"Foundations","group":"Int","wfType":"Internal","month":"Oct","prod":2088.0,"shrink":1124.307692,"total":3212.307692},{"vertical":"Foundations","group":"Int","wfType":"Internal","month":"Nov","prod":1948.8,"shrink":1049.353846,"total":2998.153846},{"vertical":"Foundations","group":"Int","wfType":"Internal","month":"Dec","prod":2088.0,"shrink":1124.307692,"total":3212.307692},{"vertical":"I & C","group":"Ext","wfType":"Con - India","month":"Apr","prod":19351.1382,"shrink":3150.185288,"total":22632.5812104},{"vertical":"I & C","group":"Ext","wfType":"Con - India","month":"May","prod":20817.13352,"shrink":3388.835689,"total":24347.170696999998},{"vertical":"I & C","group":"Ext","wfType":"Con - India","month":"Jun","prod":20163.03189,"shrink":3282.354029,"total":23586.866697100002},{"vertical":"I & C","group":"Ext","wfType":"Con - India","month":"Jul","prod":14071.2174,"shrink":2290.663297,"total":16457.32499404},{"vertical":"I & C","group":"Ext","wfType":"Con - India","month":"Aug","prod":14540.25798,"shrink":2367.01874,"total":17002.72102404},{"vertical":"I & C","group":"Ext","wfType":"Con - India","month":"Sep","prod":11195.31758,"shrink":1822.49356,"total":13096.36689688},{"vertical":"I & C","group":"Ext","wfType":"Con - India","month":"Oct","prod":11581.36301,"shrink":1885.338165,"total":13545.25693688},{"vertical":"I & C","group":"Ext","wfType":"Con - India","month":"Nov","prod":10809.27215,"shrink":1759.648954,"total":12647.47685688},{"vertical":"I & C","group":"Ext","wfType":"Con - India","month":"Dec","prod":11581.36301,"shrink":1885.338165,"total":13545.25693688},{"vertical":"I & C","group":"Ext","wfType":"Sutherland - India","month":"Apr","prod":1612.59485,"shrink":262.5154407,"total":1886.0484343599999},{"vertical":"I & C","group":"Ext","wfType":"Sutherland - India","month":"May","prod":1612.59485,"shrink":262.5154407,"total":1886.0484343599999},{"vertical":"I & C","group":"Ext","wfType":"Sutherland - India","month":"Jun","prod":1557.37469,"shrink":253.5261124,"total":1821.8286526699999},{"vertical":"I & C","group":"Ext","wfType":"Sutherland - India","month":"Jul","prod":1611.077266,"shrink":262.2683921,"total":1884.27350767},{"vertical":"I & C","group":"Ext","wfType":"Sutherland - India","month":"Aug","prod":1664.779841,"shrink":271.0106718,"total":1946.7183626699998},{"vertical":"I & C","group":"Ext","wfType":"Sutherland - India","month":"Sep","prod":1558.841688,"shrink":253.764926,"total":1823.54475736},{"vertical":"I & C","group":"Ext","wfType":"Sutherland - India","month":"Oct","prod":1612.59485,"shrink":262.5154407,"total":1886.0484343599999},{"vertical":"I & C","group":"Ext","wfType":"Sutherland - India","month":"Nov","prod":1505.088527,"shrink":245.0144113,"total":1761.04108136},{"vertical":"I & C","group":"Ext","wfType":"Sutherland - India","month":"Dec","prod":1612.59485,"shrink":262.5154407,"total":1886.0484343599999},{"vertical":"I & C","group":"Int","wfType":"Internal","month":"Apr","prod":1465.995318,"shrink":628.2837078,"total":2094.279026},{"vertical":"I & C","group":"Int","wfType":"Internal","month":"May","prod":1465.995318,"shrink":628.2837078,"total":2094.279026},{"vertical":"I & C","group":"Int","wfType":"Internal","month":"Jun","prod":1408.264348,"shrink":603.5418633,"total":2011.806211},{"vertical":"I & C","group":"Int","wfType":"Internal","month":"Jul","prod":1456.825187,"shrink":624.3536516,"total":2081.178839},{"vertical":"I & C","group":"Int","wfType":"Internal","month":"Aug","prod":1505.386027,"shrink":645.16544,"total":2150.551467},{"vertical":"I & C","group":"Int","wfType":"Internal","month":"Sep","prod":1417.128808,"shrink":607.3409176,"total":2024.469725},{"vertical":"I & C","group":"Int","wfType":"Internal","month":"Oct","prod":1465.995318,"shrink":628.2837078,"total":2094.279026},{"vertical":"I & C","group":"Int","wfType":"Internal","month":"Nov","prod":1368.262297,"shrink":586.3981273,"total":1954.660424},{"vertical":"I & C","group":"Int","wfType":"Internal","month":"Dec","prod":1465.995318,"shrink":628.2837078,"total":2094.279026},{"vertical":"Scam","group":"Ext","wfType":"Con - India","month":"Apr","prod":4466.889525,"shrink":727.1680623,"total":5224.356257259999},{"vertical":"Scam","group":"Ext","wfType":"Con - India","month":"May","prod":7671.397229,"shrink":1248.832107,"total":8972.26400612},{"vertical":"Scam","group":"Ext","wfType":"Con - India","month":"Jun","prod":7415.683988,"shrink":1207.20437,"total":8674.92302912},{"vertical":"Scam","group":"Ext","wfType":"Con - India","month":"Jul","prod":8254.034993,"shrink":1343.680115,"total":9653.70177946},{"vertical":"Scam","group":"Ext","wfType":"Con - India","month":"Aug","prod":8529.169492,"shrink":1388.469452,"total":9973.62561646},{"vertical":"Scam","group":"Ext","wfType":"Con - India","month":"Sep","prod":7978.900493,"shrink":1298.890778,"total":9333.77794246},{"vertical":"Scam","group":"Ext","wfType":"Con - India","month":"Oct","prod":8254.034993,"shrink":1343.680115,"total":9653.70177946},{"vertical":"Scam","group":"Ext","wfType":"Con - India","month":"Nov","prod":7703.765993,"shrink":1254.101441,"total":9013.85410546},{"vertical":"Scam","group":"Ext","wfType":"Con - India","month":"Dec","prod":8254.034993,"shrink":1343.680115,"total":9653.70177946},{"vertical":"Scam","group":"Int","wfType":"Internal","month":"Apr","prod":1456.59441,"shrink":624.2547473,"total":2080.849158},{"vertical":"Scam","group":"Int","wfType":"Internal","month":"May","prod":1456.59441,"shrink":624.2547473,"total":2080.849158},{"vertical":"Scam","group":"Int","wfType":"Internal","month":"Jun","prod":1408.041263,"shrink":603.4462558,"total":2011.487519},{"vertical":"Scam","group":"Int","wfType":"Internal","month":"Jul","prod":1456.59441,"shrink":624.2547473,"total":2080.849158},{"vertical":"Scam","group":"Int","wfType":"Internal","month":"Aug","prod":1505.147557,"shrink":645.0632389,"total":2150.210796},{"vertical":"Scam","group":"Int","wfType":"Internal","month":"Sep","prod":1408.041263,"shrink":603.4462558,"total":2011.487519},{"vertical":"Scam","group":"Int","wfType":"Internal","month":"Oct","prod":1456.59441,"shrink":624.2547473,"total":2080.849158},{"vertical":"Scam","group":"Int","wfType":"Internal","month":"Nov","prod":1359.488116,"shrink":582.6377642,"total":1942.125881},{"vertical":"Scam","group":"Int","wfType":"Internal","month":"Dec","prod":1456.59441,"shrink":624.2547473,"total":2080.849158},{"vertical":"Square","group":"Ext","wfType":"Con - India","month":"May","prod":3540.751025,"shrink":576.4013297,"total":4141.16907707},{"vertical":"Square","group":"Ext","wfType":"Con - India","month":"Jun","prod":3665.625958,"shrink":596.7298072,"total":4288.0768783799995},{"vertical":"Square","group":"Ext","wfType":"Con - India","month":"Jul","prod":6460.390183,"shrink":1051.691425,"total":7555.90208505},{"vertical":"Square","group":"Ext","wfType":"Con - India","month":"Aug","prod":9856.4624,"shrink":1604.540391,"total":11525.701999300001},{"vertical":"Square","group":"Ext","wfType":"Con - India","month":"Sep","prod":11309.60117,"shrink":1841.097864,"total":13230.05669657},{"vertical":"Square","group":"Ext","wfType":"Con - India","month":"Oct","prod":11057.95377,"shrink":1800.132009,"total":12933.09128037},{"vertical":"Square","group":"Ext","wfType":"Con - India","month":"Nov","prod":10817.406,"shrink":1760.97307,"total":12656.99393919},{"vertical":"Square","group":"Ext","wfType":"Con - India","month":"Dec","prod":10800.51952,"shrink":1758.224108,"total":12632.00296784},{"vertical":"Square","group":"Ext","wfType":"EXL - India","month":"Apr","prod":14580.146,"shrink":2373.51214,"total":17052.55447915},{"vertical":"Square","group":"Ext","wfType":"EXL - India","month":"May","prod":10622.25308,"shrink":1729.203989,"total":12423.50722621},{"vertical":"Square","group":"Ext","wfType":"EXL - India","month":"Jun","prod":6707.315583,"shrink":1091.888583,"total":7846.26833007},{"vertical":"Square","group":"Ext","wfType":"EXL - India","month":"Jul","prod":3537.832719,"shrink":575.9262567,"total":4137.75590336},{"vertical":"Square","group":"Int","wfType":"Internal","month":"Apr","prod":5380.768167,"shrink":2306.0435,"total":7686.811667},{"vertical":"Square","group":"Int","wfType":"Internal","month":"May","prod":5395.430133,"shrink":2312.3272,"total":7707.757333},{"vertical":"Square","group":"Int","wfType":"Internal","month":"Jun","prod":5225.466792,"shrink":2239.485768,"total":7464.95256},{"vertical":"Square","group":"Int","wfType":"Internal","month":"Jul","prod":5383.658486,"shrink":2307.282208,"total":7690.940694},{"vertical":"Square","group":"Int","wfType":"Internal","month":"Aug","prod":5544.2601,"shrink":2376.111471,"total":7920.371571},{"vertical":"Square","group":"Int","wfType":"Internal","month":"Sep","prod":5200.7655,"shrink":2228.8995,"total":7429.665},{"vertical":"Square","group":"Int","wfType":"Internal","month":"Oct","prod":5446.454842,"shrink":2334.194932,"total":7780.649774},{"vertical":"Square","group":"Int","wfType":"Internal","month":"Nov","prod":5090.544,"shrink":2181.661714,"total":7272.205714},{"vertical":"Square","group":"Int","wfType":"Internal","month":"Dec","prod":5082.597422,"shrink":2178.256038,"total":7260.85346}];
 
 let lastFile = null;
 let lastFileName = '';
@@ -832,10 +835,10 @@ let hierExpandedQueues = new Set();
 let hierNoQueueExpandedVerticals = new Set();
 let hierIntExtExpandedVerticals = new Set();
 let hierIntExtExpandedGroups = new Set();
+let riskVarExpandedVerticals = new Set();
+let riskVarExpandedGroups = new Set();
 let wfHierExpandedWf = new Set();
 let wfHierExpandedVerticals = new Set();
-let hrsVertExpandedVerticals = new Set();
-let hrsVertExpandedGroups = new Set();
 let hrsExpandedWf = new Set();
 let hrsExpandedVert = new Set();
 
@@ -986,6 +989,7 @@ function render() {
   document.getElementById('pivotVerticalIntExtSection').classList.toggle('section-hidden', activeTab !== 'pivotVerticalIntExt');
   document.getElementById('pivotWfSection').classList.toggle('section-hidden', activeTab !== 'pivotWf');
   document.getElementById('hrsByWfSection').classList.toggle('section-hidden', activeTab !== 'hrsByWf');
+  document.getElementById('riskVarianceSection').classList.toggle('section-hidden', activeTab !== 'riskVariance');
   document.getElementById('versionHistorySection').classList.toggle('section-hidden', activeTab !== 'versionHistory');
 
   if (activeTab === 'detail') renderDetail(filtered);
@@ -993,7 +997,8 @@ function render() {
   else if (activeTab === 'pivotVerticalNoQueues') renderPivotVerticalNoQueues(filtered);
   else if (activeTab === 'pivotVerticalIntExt') renderPivotVerticalIntExt(filtered);
   else if (activeTab === 'pivotWf') renderPivotWf(filtered);
-  else if (activeTab === 'hrsByWf') renderHrsByVertical(filtered);
+  else if (activeTab === 'hrsByWf') renderHrsByWf(filtered);
+  else if (activeTab === 'riskVariance') renderRiskVariance(filtered);
   else if (activeTab === 'versionHistory') renderVersionHistory();
 }
 
@@ -1965,6 +1970,180 @@ function renderHrsByWf(filtered) {
   tbody.appendChild(gtr);
 }
 
+// ===== RISK OPS VARIANCE (Vertical -> Int/Ext -> Workforce) =====
+function renderRiskVariance(filtered) {
+  const container = document.getElementById('riskVarianceSection');
+  const activeMonths = months.filter(m => selectedMonths.has(m));
+
+  function mk() { return {prod:0, shrink:0, total:0}; }
+  const calcWf = {}, calcGrp = {}, calcVert = {};
+
+  filtered.forEach(r => {
+    const g = r.wfType === 'Internal' ? 'Int' : 'Ext';
+    const m = r.month;
+    const wKey = r.vertical + '|||' + g + '|||' + r.wfType + '|||' + m;
+    if (!calcWf[wKey]) calcWf[wKey] = mk();
+    calcWf[wKey].prod += r.prodHrs;
+    calcWf[wKey].shrink += r.shrinkHrs;
+    calcWf[wKey].total += r.totalHrs;
+
+    const gKey = r.vertical + '|||' + g + '|||' + m;
+    if (!calcGrp[gKey]) calcGrp[gKey] = mk();
+    calcGrp[gKey].prod += r.prodHrs;
+    calcGrp[gKey].shrink += r.shrinkHrs;
+    calcGrp[gKey].total += r.totalHrs;
+
+    const vKey = r.vertical + '|||' + m;
+    if (!calcVert[vKey]) calcVert[vKey] = mk();
+    calcVert[vKey].prod += r.prodHrs;
+    calcVert[vKey].shrink += r.shrinkHrs;
+    calcVert[vKey].total += r.totalHrs;
+  });
+
+  const targetWf = {}, targetGrp = {}, targetVert = {};
+  (riskOpsVarianceTargets || []).forEach(t => {
+    if (!selectedVerticals.has(t.vertical)) return;
+    if (!selectedMonths.has(t.month)) return;
+    if (t.wfType !== 'Internal' && !selectedWfTypes.has(t.wfType)) return;
+
+    const wKey = t.vertical + '|||' + t.group + '|||' + t.wfType + '|||' + t.month;
+    if (!targetWf[wKey]) targetWf[wKey] = mk();
+    targetWf[wKey].prod += t.prod || 0;
+    targetWf[wKey].shrink += t.shrink || 0;
+    targetWf[wKey].total += t.total || 0;
+
+    const gKey = t.vertical + '|||' + t.group + '|||' + t.month;
+    if (!targetGrp[gKey]) targetGrp[gKey] = mk();
+    targetGrp[gKey].prod += t.prod || 0;
+    targetGrp[gKey].shrink += t.shrink || 0;
+    targetGrp[gKey].total += t.total || 0;
+
+    const vKey = t.vertical + '|||' + t.month;
+    if (!targetVert[vKey]) targetVert[vKey] = mk();
+    targetVert[vKey].prod += t.prod || 0;
+    targetVert[vKey].shrink += t.shrink || 0;
+    targetVert[vKey].total += t.total || 0;
+  });
+
+  const verticals = [...new Set([
+    ...Object.keys(calcVert).map(k => k.split('|||')[0]),
+    ...Object.keys(targetVert).map(k => k.split('|||')[0])
+  ])].sort();
+
+  function cmpCell(calc, target) {
+    const delta = calc - target;
+    const color = delta > 0 ? 'var(--orange)' : (delta < 0 ? 'var(--red)' : 'var(--text2)');
+    const sign = delta > 0 ? '+' : '';
+    return '<span>' + fmtInt(calc) + ' / ' + fmtInt(target) + ' </span><span style="color:' + color + '">(' + sign + fmtInt(delta) + ')</span>';
+  }
+
+  function aggBy(prefix, calcMap, targetMap, month) {
+    const c = calcMap[prefix + '|||' + month] || mk();
+    const t = targetMap[prefix + '|||' + month] || mk();
+    return {c, t};
+  }
+
+  // Summary analysis (leaf/workforce rows only)
+  const summary = {prod:{calc:0,target:0},shrink:{calc:0,target:0},total:{calc:0,target:0}};
+  const drivers = [];
+  Object.keys(targetWf).forEach(k => {
+    const t = targetWf[k] || mk();
+    const c = calcWf[k] || mk();
+    summary.prod.calc += c.prod; summary.prod.target += t.prod;
+    summary.shrink.calc += c.shrink; summary.shrink.target += t.shrink;
+    summary.total.calc += c.total; summary.total.target += t.total;
+    const parts = k.split('|||');
+    drivers.push({name: parts[0] + ' / ' + parts[1] + ' / ' + parts[2] + ' / ' + parts[3], delta: (c.total - t.total)});
+  });
+  drivers.sort((a,b) => Math.abs(b.delta) - Math.abs(a.delta));
+
+  let summaryHtml = '<div style="padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin:12px 0">' +
+    '<div style="font-weight:700;margin-bottom:6px">Variance Analysis (Calc vs Risk Ops 2026)</div>' +
+    '<div>Prod Hrs: ' + fmtInt(summary.prod.calc) + ' / ' + fmtInt(summary.prod.target) + ' (Δ ' + fmtInt(summary.prod.calc - summary.prod.target) + ')</div>' +
+    '<div>Shrink Hrs: ' + fmtInt(summary.shrink.calc) + ' / ' + fmtInt(summary.shrink.target) + ' (Δ ' + fmtInt(summary.shrink.calc - summary.shrink.target) + ')</div>' +
+    '<div>Total Hrs: ' + fmtInt(summary.total.calc) + ' / ' + fmtInt(summary.total.target) + ' (Δ ' + fmtInt(summary.total.calc - summary.total.target) + ')</div>' +
+    '<div style="margin-top:6px;color:var(--text2)">Top total-hour drivers: ' +
+      drivers.slice(0,5).map(d => d.name + ' (' + (d.delta > 0 ? '+' : '') + fmtInt(d.delta) + ')').join(' | ') +
+    '</div></div>';
+
+  let headerRow1 = '<tr class="section-header"><th class="name-hdr" rowspan="2">Vertical / Int-Ext / Workforce</th>';
+  activeMonths.forEach(m => { headerRow1 += '<th colspan="3" class="section-divider">' + m + '</th>'; });
+  headerRow1 += '</tr>';
+  let headerRow2 = '<tr class="month-header">';
+  activeMonths.forEach(() => {
+    headerRow2 += '<th class="section-divider section-prod">Prod (Calc/Risk/Δ)</th>';
+    headerRow2 += '<th class="section-shrink">Shrink (Calc/Risk/Δ)</th>';
+    headerRow2 += '<th class="section-total">Total (Calc/Risk/Δ)</th>';
+  });
+  headerRow2 += '</tr>';
+
+  container.innerHTML = '<div class="pivot-title">Risk Ops 2026 Comparison — Prod / Shrink / Total Hrs</div>' + summaryHtml +
+    '<div class="hrs-table"><table><thead>' + headerRow1 + headerRow2 + '</thead><tbody id="riskVarBody"></tbody></table></div>';
+  const tbody = document.getElementById('riskVarBody');
+
+  function addVarianceCells(row, prefix, calcMap, targetMap) {
+    activeMonths.forEach(m => {
+      const c = calcMap[prefix + '|||' + m] || mk();
+      const t = targetMap[prefix + '|||' + m] || mk();
+      const tdP = document.createElement('td'); tdP.className = 'section-divider'; tdP.innerHTML = cmpCell(c.prod, t.prod); row.appendChild(tdP);
+      const tdS = document.createElement('td'); tdS.innerHTML = cmpCell(c.shrink, t.shrink); row.appendChild(tdS);
+      const tdT = document.createElement('td'); tdT.innerHTML = cmpCell(c.total, t.total); row.appendChild(tdT);
+    });
+  }
+
+  const groups = ['Int','Ext'];
+  verticals.forEach(v => {
+    const vPrefix = v;
+    const vExp = riskVarExpandedVerticals.has(v);
+    const r1 = document.createElement('tr');
+    r1.className = 'hrs-l1';
+    const td1 = document.createElement('td');
+    td1.className = 'hrs-name';
+    td1.innerHTML = '<span class="toggle-arrow">' + (vExp ? '▼' : '▶') + '</span> ' + escHtml(v);
+    r1.appendChild(td1);
+    addVarianceCells(r1, vPrefix, calcVert, targetVert);
+    r1.addEventListener('click', () => {
+      if (riskVarExpandedVerticals.has(v)) riskVarExpandedVerticals.delete(v); else riskVarExpandedVerticals.add(v);
+      renderRiskVariance(filtered);
+    });
+    tbody.appendChild(r1);
+
+    if (!vExp) return;
+    groups.forEach(g => {
+      const gPrefix = v + '|||' + g;
+      const gExp = riskVarExpandedGroups.has(gPrefix);
+      const r2 = document.createElement('tr');
+      r2.className = 'hrs-l2';
+      const td2 = document.createElement('td');
+      td2.className = 'hrs-name indent-2';
+      td2.innerHTML = '<span class="toggle-arrow">' + (gExp ? '▼' : '▶') + '</span> ' + g;
+      r2.appendChild(td2);
+      addVarianceCells(r2, gPrefix, calcGrp, targetGrp);
+      r2.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (riskVarExpandedGroups.has(gPrefix)) riskVarExpandedGroups.delete(gPrefix); else riskVarExpandedGroups.add(gPrefix);
+        renderRiskVariance(filtered);
+      });
+      tbody.appendChild(r2);
+      if (!gExp) return;
+
+      const wfSet = new Set();
+      Object.keys(calcWf).forEach(k => { const p = k.split('|||'); if (p[0]===v && p[1]===g) wfSet.add(p[2]); });
+      Object.keys(targetWf).forEach(k => { const p = k.split('|||'); if (p[0]===v && p[1]===g) wfSet.add(p[2]); });
+      [...wfSet].sort().forEach(wf => {
+        const r3 = document.createElement('tr');
+        r3.className = 'hrs-l3';
+        const td3 = document.createElement('td');
+        td3.className = 'hrs-name indent-3';
+        td3.innerHTML = '<span class="wf-dot" style="background:' + wfDotColor(wf) + '"></span> ' + escHtml(wf);
+        r3.appendChild(td3);
+        addVarianceCells(r3, v + '|||' + g + '|||' + wf, calcWf, targetWf);
+        tbody.appendChild(r3);
+      });
+    });
+  });
+}
+
 // ===== VERSION HISTORY =====
 function renderVersionHistory() {
   const container = document.getElementById('versionHistorySection');
@@ -2076,8 +2255,8 @@ function rebuildFromData() {
   hierNoQueueExpandedVerticals = new Set();
   hierIntExtExpandedVerticals = new Set();
   hierIntExtExpandedGroups = new Set();
-  hrsVertExpandedVerticals = new Set();
-  hrsVertExpandedGroups = new Set();
+  riskVarExpandedVerticals = new Set();
+  riskVarExpandedGroups = new Set();
   wfHierExpandedWf = new Set();
   wfHierExpandedVerticals = new Set();
   hrsExpandedWf = new Set();
