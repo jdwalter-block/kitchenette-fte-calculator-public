@@ -201,14 +201,14 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
 A comprehensive, single-file web application for workforce planning and FTE calculation across Risk Operations verticals. All data is embedded as JavaScript objects with no external dependencies.
 
 ### Calculation Chain
-1. **Monthly Volume** = Avg Volume × Working Days
+1. **Monthly Volume** = Avg Volume × Working Days FTE
 2. **Total Work (hrs)** = Monthly Volume × AHT / 3600 / Occupancy
 3. **Prod Hrs** = Workload% × Total Work
 4. **Shrink Hrs** = (Shrink / (1 - Shrink)) × Prod Hrs
    - "Internal" workforce → Shrink Internal rate
    - All other workforce types → Shrink External rate
 5. **Total Hrs** = Prod Hrs + Shrink Hrs
-6. **FTE** = Total Hrs / 8 / Working Days
+6. **FTE** = Total Hrs / 8 / Working Days FTE
 
 ### Data Sources (Embedded)
 - **Calendar**: Working days per month (Apr–Dec)
@@ -318,7 +318,7 @@ const shortMonthMap = {Jan:'Jan',Feb:'Feb',Mar:'Mar',Apr:'Apr',May:'May',Jun:'Ju
 
 // ===== MUTABLE DATA =====
 let months = ["Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-let workingDays = {"Apr":30,"May":30,"Jun":29,"Jul":30,"Aug":31,"Sep":29,"Oct":30,"Nov":28,"Dec":30};
+let workingDays = {"Apr":21,"May":21,"Jun":21,"Jul":21,"Aug":22,"Sep":21,"Oct":21,"Nov":20,"Dec":21};
 
 let shrinkData = {"ATO":{"occupancy":{"Apr":1,"May":1,"Jun":1,"Jul":1,"Aug":1,"Sep":1,"Oct":1,"Nov":1,"Dec":1},"shrinkInternal":{"Apr":0.3,"May":0.3,"Jun":0.3,"Jul":0.3,"Aug":0.3,"Sep":0.3,"Oct":0.3,"Nov":0.3,"Dec":0.3},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}},"Afterpay":{"occupancy":{"Apr":1,"May":1,"Jun":1,"Jul":1,"Aug":1,"Sep":1,"Oct":1,"Nov":1,"Dec":1},"shrinkInternal":{"Apr":0.3,"May":0.3,"Jun":0.3,"Jul":0.3,"Aug":0.3,"Sep":0.3,"Oct":0.3,"Nov":0.3,"Dec":0.3},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}},"Appeals":{"occupancy":{"Apr":1,"May":1,"Jun":1,"Jul":1,"Aug":1,"Sep":1,"Oct":1,"Nov":1,"Dec":1},"shrinkInternal":{"Apr":0.3,"May":0.3,"Jun":0.3,"Jul":0.3,"Aug":0.3,"Sep":0.3,"Oct":0.3,"Nov":0.3,"Dec":0.3},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}},"Banking":{"occupancy":{"Apr":1,"May":1,"Jun":1,"Jul":1,"Aug":1,"Sep":1,"Oct":1,"Nov":1,"Dec":1},"shrinkInternal":{"Apr":0.3,"May":0.3,"Jun":0.3,"Jul":0.3,"Aug":0.3,"Sep":0.3,"Oct":0.3,"Nov":0.3,"Dec":0.3},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}},"BIT":{"occupancy":{"Apr":1,"May":1,"Jun":1,"Jul":1,"Aug":1,"Sep":1,"Oct":1,"Nov":1,"Dec":1},"shrinkInternal":{"Apr":0.35,"May":0.35,"Jun":0.35,"Jul":0.35,"Aug":0.35,"Sep":0.35,"Oct":0.35,"Nov":0.35,"Dec":0.35},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}},"Disputes":{"occupancy":{"Apr":1,"May":1,"Jun":1,"Jul":1,"Aug":1,"Sep":1,"Oct":1,"Nov":1,"Dec":1},"shrinkInternal":{"Apr":0.3,"May":0.3,"Jun":0.3,"Jul":0.3,"Aug":0.3,"Sep":0.3,"Oct":0.3,"Nov":0.3,"Dec":0.3},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}},"Foundations":{"occupancy":{"Apr":1,"May":1,"Jun":1,"Jul":1,"Aug":1,"Sep":1,"Oct":1,"Nov":1,"Dec":1},"shrinkInternal":{"Apr":0.35,"May":0.35,"Jun":0.35,"Jul":0.35,"Aug":0.35,"Sep":0.35,"Oct":0.35,"Nov":0.35,"Dec":0.35},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}},"I & C":{"occupancy":{"Apr":1,"May":1,"Jun":1,"Jul":1,"Aug":1,"Sep":1,"Oct":1,"Nov":1,"Dec":1},"shrinkInternal":{"Apr":0.3,"May":0.3,"Jun":0.3,"Jul":0.3,"Aug":0.3,"Sep":0.3,"Oct":0.3,"Nov":0.3,"Dec":0.3},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}},"Scam":{"occupancy":{"Apr":1,"May":1,"Jun":1,"Jul":1,"Aug":1,"Sep":1,"Oct":1,"Nov":1,"Dec":1},"shrinkInternal":{"Apr":0.3,"May":0.3,"Jun":0.3,"Jul":0.3,"Aug":0.3,"Sep":0.3,"Oct":0.3,"Nov":0.3,"Dec":0.3},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}},"Square":{"occupancy":{"Apr":1,"May":1,"Jun":1,"Jul":1,"Aug":1,"Sep":1,"Oct":1,"Nov":1,"Dec":1},"shrinkInternal":{"Apr":0.3,"May":0.3,"Jun":0.3,"Jul":0.3,"Aug":0.3,"Sep":0.3,"Oct":0.3,"Nov":0.3,"Dec":0.3},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}}};
 
@@ -378,13 +378,13 @@ function parseExcel(arrayBuffer) {
     if (sm) calMonthCols.push({idx: i, month: sm});
   }
 
-  // Find "Working Days" row (the one that includes weekends, not M-F only)
+  // Find FTE-specific working days row from Calendar
   let wdRow = null;
   for (let r = 1; r < calData.length; r++) {
     const label = String(calData[r][0] || '').trim();
-    if (label === 'Working Days') { wdRow = calData[r]; break; }
+    if (label === 'Working Days - FTE' || label === 'Working Days FTE' || label === 'Working Days (M-F) FTE') { wdRow = calData[r]; break; }
   }
-  if (!wdRow) throw new Error('Missing "Working Days" row in Calendar sheet');
+  if (!wdRow) throw new Error('Missing "Working Days FTE" row in Calendar sheet');
 
   // Collect all calendar months with working days (will be filtered later)
   const calWorkingDays = {};
@@ -1850,8 +1850,8 @@ function showModal(r) {
     '<h3>' + escHtml(r.vertical) + ' — ' + escHtml(r.queue) + '</h3>' +
     '<div class="queue-name">' + escHtml(r.wfType) + ' · ' + r.month + '</div>' +
     '<div class="calc-step"><span class="label">Avg Volume</span><span class="value">' + fmtInt(r.avgVol) + '</span></div>' +
-    '<div class="calc-step"><span class="label">Working Days</span><span class="value">' + r.wd + '</span></div>' +
-    '<div class="calc-step"><span class="label">Monthly Volume = ' + fmtInt(r.avgVol) + ' × ' + r.wd + '</span><span class="value">' + fmtInt(r.monthlyVol) + '</span></div>' +
+    '<div class="calc-step"><span class="label">Working Days FTE</span><span class="value">' + r.wd + '</span></div>' +
+    '<div class="calc-step"><span class="label">Monthly Volume = ' + fmtInt(r.avgVol) + ' × ' + r.wd + ' (WD FTE)</span><span class="value">' + fmtInt(r.monthlyVol) + '</span></div>' +
     '<div class="calc-step"><span class="label">AHT (seconds)</span><span class="value">' + fmtInt(r.aht) + '</span></div>' +
     '<div class="calc-step"><span class="label">Occupancy</span><span class="value">' + fmtPct(r.occ) + '</span></div>' +
     '<div class="calc-step"><span class="label">Total Work = ' + fmtInt(r.monthlyVol) + ' × ' + fmtInt(r.aht) + ' / 3600 / ' + r.occ + '</span><span class="value">' + fmtDec1(r.totalWork) + ' hrs</span></div>' +
