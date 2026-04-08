@@ -201,7 +201,7 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
 A comprehensive, single-file web application for workforce planning and FTE calculation across Risk Operations verticals. All data is embedded as JavaScript objects with no external dependencies.
 
 ### Calculation Chain
-1. **Monthly Volume** = Avg Volume × Working Days FTE
+1. **Monthly Volume** = Avg Volume × Working Days
 2. **Total Work (hrs)** = Monthly Volume × AHT / 3600 / Occupancy
 3. **Prod Hrs** = Workload% × Total Work
 4. **Shrink Hrs** = (Shrink / (1 - Shrink)) × Prod Hrs
@@ -318,7 +318,8 @@ const shortMonthMap = {Jan:'Jan',Feb:'Feb',Mar:'Mar',Apr:'Apr',May:'May',Jun:'Ju
 
 // ===== MUTABLE DATA =====
 let months = ["Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-let workingDays = {"Apr":21,"May":21,"Jun":21,"Jul":21,"Aug":22,"Sep":21,"Oct":21,"Nov":20,"Dec":21};
+let workingDays = {"Apr":30,"May":30,"Jun":29,"Jul":30,"Aug":31,"Sep":29,"Oct":30,"Nov":28,"Dec":30};
+let workingDaysFte = {"Apr":21,"May":21,"Jun":21,"Jul":21,"Aug":22,"Sep":21,"Oct":21,"Nov":20,"Dec":21};
 
 let shrinkData = {"ATO":{"occupancy":{"Apr":1,"May":1,"Jun":1,"Jul":1,"Aug":1,"Sep":1,"Oct":1,"Nov":1,"Dec":1},"shrinkInternal":{"Apr":0.3,"May":0.3,"Jun":0.3,"Jul":0.3,"Aug":0.3,"Sep":0.3,"Oct":0.3,"Nov":0.3,"Dec":0.3},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}},"Afterpay":{"occupancy":{"Apr":1,"May":1,"Jun":1,"Jul":1,"Aug":1,"Sep":1,"Oct":1,"Nov":1,"Dec":1},"shrinkInternal":{"Apr":0.3,"May":0.3,"Jun":0.3,"Jul":0.3,"Aug":0.3,"Sep":0.3,"Oct":0.3,"Nov":0.3,"Dec":0.3},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}},"Appeals":{"occupancy":{"Apr":1,"May":1,"Jun":1,"Jul":1,"Aug":1,"Sep":1,"Oct":1,"Nov":1,"Dec":1},"shrinkInternal":{"Apr":0.3,"May":0.3,"Jun":0.3,"Jul":0.3,"Aug":0.3,"Sep":0.3,"Oct":0.3,"Nov":0.3,"Dec":0.3},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}},"Banking":{"occupancy":{"Apr":1,"May":1,"Jun":1,"Jul":1,"Aug":1,"Sep":1,"Oct":1,"Nov":1,"Dec":1},"shrinkInternal":{"Apr":0.3,"May":0.3,"Jun":0.3,"Jul":0.3,"Aug":0.3,"Sep":0.3,"Oct":0.3,"Nov":0.3,"Dec":0.3},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}},"BIT":{"occupancy":{"Apr":1,"May":1,"Jun":1,"Jul":1,"Aug":1,"Sep":1,"Oct":1,"Nov":1,"Dec":1},"shrinkInternal":{"Apr":0.35,"May":0.35,"Jun":0.35,"Jul":0.35,"Aug":0.35,"Sep":0.35,"Oct":0.35,"Nov":0.35,"Dec":0.35},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}},"Disputes":{"occupancy":{"Apr":1,"May":1,"Jun":1,"Jul":1,"Aug":1,"Sep":1,"Oct":1,"Nov":1,"Dec":1},"shrinkInternal":{"Apr":0.3,"May":0.3,"Jun":0.3,"Jul":0.3,"Aug":0.3,"Sep":0.3,"Oct":0.3,"Nov":0.3,"Dec":0.3},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}},"Foundations":{"occupancy":{"Apr":1,"May":1,"Jun":1,"Jul":1,"Aug":1,"Sep":1,"Oct":1,"Nov":1,"Dec":1},"shrinkInternal":{"Apr":0.35,"May":0.35,"Jun":0.35,"Jul":0.35,"Aug":0.35,"Sep":0.35,"Oct":0.35,"Nov":0.35,"Dec":0.35},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}},"I & C":{"occupancy":{"Apr":1,"May":1,"Jun":1,"Jul":1,"Aug":1,"Sep":1,"Oct":1,"Nov":1,"Dec":1},"shrinkInternal":{"Apr":0.3,"May":0.3,"Jun":0.3,"Jul":0.3,"Aug":0.3,"Sep":0.3,"Oct":0.3,"Nov":0.3,"Dec":0.3},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}},"Scam":{"occupancy":{"Apr":1,"May":1,"Jun":1,"Jul":1,"Aug":1,"Sep":1,"Oct":1,"Nov":1,"Dec":1},"shrinkInternal":{"Apr":0.3,"May":0.3,"Jun":0.3,"Jul":0.3,"Aug":0.3,"Sep":0.3,"Oct":0.3,"Nov":0.3,"Dec":0.3},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}},"Square":{"occupancy":{"Apr":1,"May":1,"Jun":1,"Jul":1,"Aug":1,"Sep":1,"Oct":1,"Nov":1,"Dec":1},"shrinkInternal":{"Apr":0.3,"May":0.3,"Jun":0.3,"Jul":0.3,"Aug":0.3,"Sep":0.3,"Oct":0.3,"Nov":0.3,"Dec":0.3},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}}};
 
@@ -378,19 +379,27 @@ function parseExcel(arrayBuffer) {
     if (sm) calMonthCols.push({idx: i, month: sm});
   }
 
-  // Find FTE-specific working days row from Calendar
+  // Find both Working Days and Working Days FTE rows from Calendar
   let wdRow = null;
+  let wdFteRow = null;
   for (let r = 1; r < calData.length; r++) {
     const label = String(calData[r][0] || '').trim();
-    if (label === 'Working Days - FTE' || label === 'Working Days FTE' || label === 'Working Days (M-F) FTE') { wdRow = calData[r]; break; }
+    if (label === 'Working Days') wdRow = calData[r];
+    if (label === 'Working Days - FTE' || label === 'Working Days FTE' || label === 'Working Days (M-F) FTE') wdFteRow = calData[r];
   }
-  if (!wdRow) throw new Error('Missing "Working Days FTE" row in Calendar sheet');
+  if (!wdRow && wdFteRow) wdRow = wdFteRow;
+  if (!wdFteRow && wdRow) wdFteRow = wdRow;
+  if (!wdRow) throw new Error('Missing "Working Days" row in Calendar sheet');
+  if (!wdFteRow) throw new Error('Missing "Working Days FTE" row in Calendar sheet');
 
   // Collect all calendar months with working days (will be filtered later)
   const calWorkingDays = {};
+  const calWorkingDaysFte = {};
   calMonthCols.forEach(mc => {
     const wd = parseNum(wdRow[mc.idx]);
+    const wdFte = parseNum(wdFteRow[mc.idx]);
     if (wd > 0) calWorkingDays[mc.month] = wd;
+    if (wdFte > 0) calWorkingDaysFte[mc.month] = wdFte;
   });
 
   // ===== SHRINK SHEET =====
@@ -409,7 +418,11 @@ function parseExcel(arrayBuffer) {
   // Use only months that appear in the Shrink sheet AND have working days
   months = shrinkMonthCols.map(mc => mc.month);
   workingDays = {};
-  months.forEach(m => { workingDays[m] = calWorkingDays[m]; });
+  workingDaysFte = {};
+  months.forEach(m => {
+    workingDays[m] = calWorkingDays[m];
+    workingDaysFte[m] = calWorkingDaysFte[m] || calWorkingDays[m];
+  });
 
   shrinkData = {};
   let currentVertical = '';
@@ -594,6 +607,7 @@ function calculate(vertical, queue, wfType, month) {
   const avgVol = wl.avgVolume[month] || 0;
   const aht = wl.aht[month] || 0;
   const wd = workingDays[month];
+  const wdFte = workingDaysFte[month] || wd;
   const occ = sd.occupancy[month];
   const wlPct = wp.pct[month] || 0;
   const isInternal = wfType === "Internal";
@@ -604,9 +618,9 @@ function calculate(vertical, queue, wfType, month) {
   const prodHrs = wlPct * totalWork;
   const shrinkHrs = (shrinkRate === 1) ? 0 : (shrinkRate / (1 - shrinkRate)) * prodHrs;
   const totalHrs = prodHrs + shrinkHrs;
-  const fte = (wd === 0) ? 0 : totalHrs / 8 / wd;
+  const fte = (wdFte === 0) ? 0 : totalHrs / 8 / wdFte;
 
-  return { avgVol, wd, monthlyVol, aht, occ, totalWork, wlPct, prodHrs, shrinkRate, shrinkHrs, totalHrs, fte, vertical, queue, wfType, month };
+  return { avgVol, wd, wdFte, monthlyVol, aht, occ, totalWork, wlPct, prodHrs, shrinkRate, shrinkHrs, totalHrs, fte, vertical, queue, wfType, month };
 }
 
 // ===== VERTICAL-LEVEL WORKFORCE ALLOCATION =====
@@ -651,6 +665,7 @@ function buildRowsVerticalWorkforceAllocation() {
 
     months.forEach(month => {
       const wd = workingDays[month] || 0;
+      const wdFte = workingDaysFte[month] || wd;
 
       const queueStats = queues.map(q => {
         const avgVol = q.avgVolume[month] || 0;
@@ -675,13 +690,14 @@ function buildRowsVerticalWorkforceAllocation() {
         const verticalProdHrs = wlPct * verticalTotalWork;
         const verticalShrinkHrs = (shrinkRate === 1) ? 0 : (shrinkRate / (1 - shrinkRate)) * verticalProdHrs;
         const verticalTotalHrs = verticalProdHrs + verticalShrinkHrs;
-        const verticalFte = (wd === 0) ? 0 : verticalTotalHrs / 8 / wd;
+        const verticalFte = (wdFte === 0) ? 0 : verticalTotalHrs / 8 / wdFte;
 
         queueStats.forEach((q, idx) => {
           const share = distSum > 0 ? Math.max(0, q.distBasis) / distSum : (1 / queueStats.length);
           allRows.push({
             avgVol: q.avgVol,
             wd,
+            wdFte,
             monthlyVol: q.monthlyVol,
             aht: q.aht,
             occ: q.occ,
@@ -1850,8 +1866,9 @@ function showModal(r) {
     '<h3>' + escHtml(r.vertical) + ' — ' + escHtml(r.queue) + '</h3>' +
     '<div class="queue-name">' + escHtml(r.wfType) + ' · ' + r.month + '</div>' +
     '<div class="calc-step"><span class="label">Avg Volume</span><span class="value">' + fmtInt(r.avgVol) + '</span></div>' +
-    '<div class="calc-step"><span class="label">Working Days FTE</span><span class="value">' + r.wd + '</span></div>' +
-    '<div class="calc-step"><span class="label">Monthly Volume = ' + fmtInt(r.avgVol) + ' × ' + r.wd + ' (WD FTE)</span><span class="value">' + fmtInt(r.monthlyVol) + '</span></div>' +
+    '<div class="calc-step"><span class="label">Working Days</span><span class="value">' + r.wd + '</span></div>' +
+    '<div class="calc-step"><span class="label">Working Days FTE</span><span class="value">' + (r.wdFte || r.wd) + '</span></div>' +
+    '<div class="calc-step"><span class="label">Monthly Volume = ' + fmtInt(r.avgVol) + ' × ' + r.wd + ' (WD)</span><span class="value">' + fmtInt(r.monthlyVol) + '</span></div>' +
     '<div class="calc-step"><span class="label">AHT (seconds)</span><span class="value">' + fmtInt(r.aht) + '</span></div>' +
     '<div class="calc-step"><span class="label">Occupancy</span><span class="value">' + fmtPct(r.occ) + '</span></div>' +
     '<div class="calc-step"><span class="label">Total Work = ' + fmtInt(r.monthlyVol) + ' × ' + fmtInt(r.aht) + ' / 3600 / ' + r.occ + '</span><span class="value">' + fmtDec1(r.totalWork) + ' hrs</span></div>' +
@@ -1860,7 +1877,7 @@ function showModal(r) {
     '<div class="calc-step"><span class="label">Shrink Rate (' + (isInternal ? 'Internal' : 'External') + ')</span><span class="value">' + fmtPct(r.shrinkRate) + '</span></div>' +
     '<div class="calc-step"><span class="label">Shrink Hrs = (' + r.shrinkRate + ' / ' + fmtDec2(1-r.shrinkRate) + ') × ' + fmtDec1(r.prodHrs) + '</span><span class="value">' + fmtDec1(r.shrinkHrs) + ' hrs</span></div>' +
     '<div class="calc-step"><span class="label">Total Hrs = ' + fmtDec1(r.prodHrs) + ' + ' + fmtDec1(r.shrinkHrs) + '</span><span class="value">' + fmtDec1(r.totalHrs) + ' hrs</span></div>' +
-    '<div class="calc-step final"><span class="label">FTE = ' + fmtDec1(r.totalHrs) + ' / 8 / ' + r.wd + '</span><span class="value">' + fmtDec2(r.fte) + '</span></div>' +
+    '<div class="calc-step final"><span class="label">FTE = ' + fmtDec1(r.totalHrs) + ' / 8 / ' + (r.wdFte || r.wd) + '</span><span class="value">' + fmtDec2(r.fte) + '</span></div>' +
     '</div></div></div>';
   document.getElementById('modalOverlay').addEventListener('click', e => {
     if (e.target === document.getElementById('modalOverlay')) mc.innerHTML = '';
