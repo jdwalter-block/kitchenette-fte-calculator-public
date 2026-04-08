@@ -289,6 +289,7 @@ Internal, Con - India, Con - Latam, Probe - India, ALMS - India, Sutherland - In
   <div class="tab" data-tab="pivotVertical">FTE by Vertical</div>
   <div class="tab active" data-tab="pivotVerticalNoQueues">FTE by Vertical (No Queues)</div>
   <div class="tab" data-tab="pivotVerticalIntExt">FTE by Vertical (Int/Ext)</div>
+  <div class="tab" data-tab="hrsByVertical">Hours by Vertical</div>
   <div class="tab" data-tab="pivotWf">FTE by Workforce</div>
   <div class="tab" data-tab="hrsByWf">Hours by Workforce</div>
   <div class="tab" data-tab="versionHistory">Version History</div>
@@ -304,6 +305,7 @@ Internal, Con - India, Con - Latam, Probe - India, ALMS - India, Sutherland - In
   <div id="pivotVerticalSection" class="section-hidden"></div>
   <div id="pivotVerticalNoQueuesSection" class="section-hidden"></div>
   <div id="pivotVerticalIntExtSection" class="section-hidden"></div>
+  <div id="hrsByVerticalSection" class="section-hidden"></div>
   <div id="pivotWfSection" class="section-hidden"></div>
   <div id="hrsByWfSection" class="section-hidden"></div>
   <div id="versionHistorySection" class="section-hidden"></div>
@@ -834,6 +836,8 @@ let hierIntExtExpandedVerticals = new Set();
 let hierIntExtExpandedGroups = new Set();
 let wfHierExpandedWf = new Set();
 let wfHierExpandedVerticals = new Set();
+let hrsVertExpandedVerticals = new Set();
+let hrsVertExpandedGroups = new Set();
 let hrsExpandedWf = new Set();
 let hrsExpandedVert = new Set();
 
@@ -982,6 +986,7 @@ function render() {
   document.getElementById('pivotVerticalSection').classList.toggle('section-hidden', activeTab !== 'pivotVertical');
   document.getElementById('pivotVerticalNoQueuesSection').classList.toggle('section-hidden', activeTab !== 'pivotVerticalNoQueues');
   document.getElementById('pivotVerticalIntExtSection').classList.toggle('section-hidden', activeTab !== 'pivotVerticalIntExt');
+  document.getElementById('hrsByVerticalSection').classList.toggle('section-hidden', activeTab !== 'hrsByVertical');
   document.getElementById('pivotWfSection').classList.toggle('section-hidden', activeTab !== 'pivotWf');
   document.getElementById('hrsByWfSection').classList.toggle('section-hidden', activeTab !== 'hrsByWf');
   document.getElementById('versionHistorySection').classList.toggle('section-hidden', activeTab !== 'versionHistory');
@@ -990,6 +995,7 @@ function render() {
   else if (activeTab === 'pivotVertical') renderPivotVertical(filtered);
   else if (activeTab === 'pivotVerticalNoQueues') renderPivotVerticalNoQueues(filtered);
   else if (activeTab === 'pivotVerticalIntExt') renderPivotVerticalIntExt(filtered);
+  else if (activeTab === 'hrsByVertical') renderHrsByVertical(filtered);
   else if (activeTab === 'pivotWf') renderPivotWf(filtered);
   else if (activeTab === 'hrsByWf') renderHrsByWf(filtered);
   else if (activeTab === 'versionHistory') renderVersionHistory();
@@ -1654,6 +1660,158 @@ function renderPivotWf(filtered) {
   tbody.appendChild(gtr);
 }
 
+// ===== HOURS BY VERTICAL (Hierarchical: Vertical -> Int/Ext -> Workforce) =====
+function renderHrsByVertical(filtered) {
+  const container = document.getElementById('hrsByVerticalSection');
+  const activeMonths = months.filter(m => selectedMonths.has(m));
+
+  // tree: vertical -> group(Int/Ext) -> workforce -> month -> {prod,shrink,total}
+  const tree = {};
+  const vertAgg = {};
+  const groupAgg = {};
+  const grandTotal = {};
+  activeMonths.forEach(m => grandTotal[m] = {prod:0, shrink:0, total:0});
+
+  filtered.forEach(r => {
+    const v = r.vertical;
+    const g = r.wfType === 'Internal' ? 'Int' : 'Ext';
+    const wf = r.wfType;
+    const m = r.month;
+
+    if (!tree[v]) tree[v] = {};
+    if (!tree[v][g]) tree[v][g] = {};
+    if (!tree[v][g][wf]) {
+      tree[v][g][wf] = {};
+      activeMonths.forEach(mm => tree[v][g][wf][mm] = {prod:0, shrink:0, total:0});
+    }
+    tree[v][g][wf][m].prod += r.prodHrs;
+    tree[v][g][wf][m].shrink += r.shrinkHrs;
+    tree[v][g][wf][m].total += r.totalHrs;
+
+    if (!vertAgg[v]) {
+      vertAgg[v] = {};
+      activeMonths.forEach(mm => vertAgg[v][mm] = {prod:0, shrink:0, total:0});
+    }
+    vertAgg[v][m].prod += r.prodHrs;
+    vertAgg[v][m].shrink += r.shrinkHrs;
+    vertAgg[v][m].total += r.totalHrs;
+
+    const gKey = v + '|||' + g;
+    if (!groupAgg[gKey]) {
+      groupAgg[gKey] = {};
+      activeMonths.forEach(mm => groupAgg[gKey][mm] = {prod:0, shrink:0, total:0});
+    }
+    groupAgg[gKey][m].prod += r.prodHrs;
+    groupAgg[gKey][m].shrink += r.shrinkHrs;
+    groupAgg[gKey][m].total += r.totalHrs;
+
+    grandTotal[m].prod += r.prodHrs;
+    grandTotal[m].shrink += r.shrinkHrs;
+    grandTotal[m].total += r.totalHrs;
+  });
+
+  let headerRow1 = '<tr class="section-header"><th class="name-hdr" rowspan="2">Vertical / Int-Ext / Workforce</th>';
+  activeMonths.forEach(m => {
+    headerRow1 += '<th colspan="3" class="section-divider" style="text-align:center;font-size:12px;color:var(--text)">' + m + '</th>';
+  });
+  headerRow1 += '</tr>';
+
+  let headerRow2 = '<tr class="month-header">';
+  activeMonths.forEach(() => {
+    headerRow2 += '<th class="section-divider section-prod" style="color:var(--accent)">Prod</th>';
+    headerRow2 += '<th class="section-shrink" style="color:var(--yellow)">Shrink</th>';
+    headerRow2 += '<th class="section-total" style="color:var(--green)">Total</th>';
+  });
+  headerRow2 += '</tr>';
+
+  container.innerHTML = '<div class="pivot-title">Hours by Vertical → Int/Ext → Workforce (Apr+)</div><div class="hrs-table"><table>' +
+    '<thead>' + headerRow1 + headerRow2 + '</thead>' +
+    '<tbody id="hrsByVerticalBody"></tbody></table></div>';
+
+  const tbody = document.getElementById('hrsByVerticalBody');
+
+  function addDataCells(row, dataByMonth, emphasizeTotal) {
+    activeMonths.forEach(m => {
+      const d = dataByMonth[m] || {prod:0, shrink:0, total:0};
+      const tdP = document.createElement('td');
+      tdP.className = 'section-divider';
+      tdP.textContent = fmtInt(d.prod);
+      row.appendChild(tdP);
+
+      const tdS = document.createElement('td');
+      tdS.textContent = fmtInt(d.shrink);
+      row.appendChild(tdS);
+
+      const tdT = document.createElement('td');
+      if (emphasizeTotal) tdT.style.fontWeight = '700';
+      tdT.textContent = fmtInt(d.total);
+      row.appendChild(tdT);
+    });
+  }
+
+  const sortedVerticals = Object.keys(tree).sort();
+  const groupOrder = ['Int', 'Ext'];
+  sortedVerticals.forEach(v => {
+    const vExpanded = hrsVertExpandedVerticals.has(v);
+    const r1 = document.createElement('tr');
+    r1.className = 'hrs-l1';
+    const td1 = document.createElement('td');
+    td1.className = 'hrs-name';
+    td1.innerHTML = '<span class="toggle-arrow">' + (vExpanded ? '▼' : '▶') + '</span> ' + escHtml(v);
+    r1.appendChild(td1);
+    addDataCells(r1, vertAgg[v] || {}, true);
+    r1.addEventListener('click', () => {
+      if (hrsVertExpandedVerticals.has(v)) hrsVertExpandedVerticals.delete(v); else hrsVertExpandedVerticals.add(v);
+      renderHrsByVertical(filtered);
+    });
+    tbody.appendChild(r1);
+
+    if (!vExpanded) return;
+
+    groupOrder.forEach(g => {
+      if (!tree[v][g]) return;
+      const gKey = v + '|||' + g;
+      const gExpanded = hrsVertExpandedGroups.has(gKey);
+      const r2 = document.createElement('tr');
+      r2.className = 'hrs-l2';
+      const td2 = document.createElement('td');
+      td2.className = 'hrs-name indent-2';
+      td2.innerHTML = '<span class="toggle-arrow">' + (gExpanded ? '▼' : '▶') + '</span> ' + g;
+      r2.appendChild(td2);
+      addDataCells(r2, groupAgg[gKey] || {}, false);
+      r2.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (hrsVertExpandedGroups.has(gKey)) hrsVertExpandedGroups.delete(gKey); else hrsVertExpandedGroups.add(gKey);
+        renderHrsByVertical(filtered);
+      });
+      tbody.appendChild(r2);
+
+      if (!gExpanded) return;
+
+      const sortedWf = Object.keys(tree[v][g]).sort();
+      sortedWf.forEach(wf => {
+        const r3 = document.createElement('tr');
+        r3.className = 'hrs-l3';
+        const td3 = document.createElement('td');
+        td3.className = 'hrs-name indent-3';
+        td3.innerHTML = '<span class="wf-dot" style="background:' + wfDotColor(wf) + '"></span> ' + escHtml(wf);
+        r3.appendChild(td3);
+        addDataCells(r3, tree[v][g][wf], false);
+        tbody.appendChild(r3);
+      });
+    });
+  });
+
+  const gtr = document.createElement('tr');
+  gtr.className = 'hrs-grand';
+  const gtd = document.createElement('td');
+  gtd.className = 'hrs-name';
+  gtd.textContent = 'GRAND TOTAL';
+  gtr.appendChild(gtd);
+  addDataCells(gtr, grandTotal, true);
+  tbody.appendChild(gtr);
+}
+
 // ===== HOURS BY WORKFORCE (Hierarchical: Workforce → Vertical → Queue) =====
 function renderHrsByWf(filtered) {
   const container = document.getElementById('hrsByWfSection');
@@ -1922,6 +2080,8 @@ function rebuildFromData() {
   hierNoQueueExpandedVerticals = new Set();
   hierIntExtExpandedVerticals = new Set();
   hierIntExtExpandedGroups = new Set();
+  hrsVertExpandedVerticals = new Set();
+  hrsVertExpandedGroups = new Set();
   wfHierExpandedWf = new Set();
   wfHierExpandedVerticals = new Set();
   hrsExpandedWf = new Set();
