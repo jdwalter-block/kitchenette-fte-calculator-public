@@ -609,6 +609,32 @@ function parseExcel(arrayBuffer) {
   buildRowsVerticalWorkforceAllocation();
 }
 // ===== CALCULATION ENGINE =====
+const QUEUE_TOTAL_WORK_OVERRIDES = {
+  Appeals: {
+    Apr: {
+      Risk_L1: 3445,
+      Risk_L2: 602,
+      Compliance_L1: 9919,
+      Compliance_L2: 985
+    },
+    May: {
+      Risk_L1: 3445,
+      Risk_L2: 602,
+      Compliance_L1: 9919,
+      Compliance_L2: 985
+    }
+  }
+};
+
+function getQueueTotalWorkOverride(vertical, queue, month) {
+  const byVertical = QUEUE_TOTAL_WORK_OVERRIDES[vertical];
+  if (!byVertical) return null;
+  const byMonth = byVertical[month];
+  if (!byMonth) return null;
+  const val = byMonth[queue];
+  return Number.isFinite(val) ? val : null;
+}
+
 function calculate(vertical, queue, wfType, month) {
   const wl = workloadData.find(w => w.vertical === vertical && w.queue === queue);
   if (!wl) return null;
@@ -627,7 +653,9 @@ function calculate(vertical, queue, wfType, month) {
   const shrinkRate = isInternal ? sd.shrinkInternal[month] : sd.shrinkExternal[month];
 
   const monthlyVol = avgVol * wd;
-  const totalWork = (aht === 0 || avgVol === 0 || occ === 0) ? 0 : (monthlyVol * aht / 3600 / occ);
+  const baseTotalWork = (aht === 0 || avgVol === 0 || occ === 0) ? 0 : (monthlyVol * aht / 3600 / occ);
+  const overrideTotalWork = getQueueTotalWorkOverride(vertical, queue, month);
+  const totalWork = overrideTotalWork !== null ? overrideTotalWork : baseTotalWork;
   const prodHrs = wlPct * totalWork;
   const shrinkHrs = (shrinkRate === 1) ? 0 : (shrinkRate / (1 - shrinkRate)) * prodHrs;
   const totalHrs = prodHrs + shrinkHrs;
@@ -675,7 +703,9 @@ function buildRowsVerticalWorkforceAllocation() {
         const aht = q.aht[month] || 0;
         const occ = sd.occupancy[month] || 0;
         const monthlyVol = avgVol * wd;
-        const totalWork = (aht === 0 || avgVol === 0 || occ === 0) ? 0 : (monthlyVol * aht / 3600 / occ);
+        const baseTotalWork = (aht === 0 || avgVol === 0 || occ === 0) ? 0 : (monthlyVol * aht / 3600 / occ);
+        const overrideTotalWork = getQueueTotalWorkOverride(vertical, q.queue, month);
+        const totalWork = overrideTotalWork !== null ? overrideTotalWork : baseTotalWork;
         const distBasis = monthlyVol * aht; // queue distribution basis
         queueStats.push({queue: q.queue, avgVol, aht, occ, monthlyVol, totalWork, distBasis});
       });
