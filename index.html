@@ -871,6 +871,7 @@ let wfHierExpandedWf = new Set();
 let wfHierExpandedVerticals = new Set();
 let hrsExpandedWf = new Set();
 let hrsExpandedVert = new Set();
+let hrsShowBreakdown = false;
 
 // ===== FORMAT HELPERS =====
 const fmtInt = n => n === 0 ? '0' : n.toLocaleString('en-US', {maximumFractionDigits:0});
@@ -1634,31 +1635,58 @@ function renderHrsByWf(filtered) {
     grandTotal[m].total += r.totalHrs;
   });
 
-  // Build header rows — Row 1: Month names spanning 4 cols each, Row 2: Prod/Shrink/Train/Total
-  let headerRow1 = '<tr class="section-header"><th class="name-hdr" rowspan="2">Workforce / Vertical / Queue</th>';
+  // Build header rows. Default is Total-only; optional breakdown shows Prod/Shrink/Train/Total.
+  let headerRow1 = '<tr class="section-header"><th class="name-hdr" rowspan="' + (hrsShowBreakdown ? '2' : '1') + '">Workforce / Vertical / Queue</th>';
   activeMonths.forEach(m => {
-    headerRow1 += '<th colspan="4" class="section-divider" style="text-align:center;font-size:12px;color:var(--text)">' + formatDisplayMonth(m) + '</th>';
+    if (hrsShowBreakdown) {
+      headerRow1 += '<th colspan="4" class="section-divider" style="text-align:center;font-size:12px;color:var(--text)">' + formatDisplayMonth(m) + '</th>';
+    } else {
+      headerRow1 += '<th class="section-divider section-total" style="text-align:center;font-size:12px;color:var(--green)">Total ' + formatDisplayMonth(m) + '</th>';
+    }
   });
   headerRow1 += '</tr>';
 
-  let headerRow2 = '<tr class="month-header">';
-  activeMonths.forEach(m => {
-    headerRow2 += '<th class="section-divider section-prod" style="color:var(--accent)">Prod</th>';
-    headerRow2 += '<th class="section-shrink" style="color:var(--yellow)">Shrink</th>';
-    headerRow2 += '<th class="section-train" style="color:var(--purple)">Train</th>';
-    headerRow2 += '<th class="section-total" style="color:var(--green)">Total</th>';
-  });
-  headerRow2 += '</tr>';
+  let headerRow2 = '';
+  if (hrsShowBreakdown) {
+    headerRow2 = '<tr class="month-header">';
+    activeMonths.forEach(m => {
+      headerRow2 += '<th class="section-divider section-prod" style="color:var(--accent)">Prod</th>';
+      headerRow2 += '<th class="section-shrink" style="color:var(--yellow)">Shrink</th>';
+      headerRow2 += '<th class="section-train" style="color:var(--purple)">Train</th>';
+      headerRow2 += '<th class="section-total" style="color:var(--green)">Total</th>';
+    });
+    headerRow2 += '</tr>';
+  }
 
-  container.innerHTML = '<div class="pivot-title">Hours by Workforce Type × Month</div><div class="hrs-table"><table>' +
+  const toggleLabel = hrsShowBreakdown ? 'Hide Breakdown' : 'Show Breakdown';
+  container.innerHTML =
+    '<div class="pivot-title">Hours by Workforce Type × Month <button class="btn" id="hrsBreakdownToggle" style="margin-left:10px;padding:4px 8px;font-size:11px;vertical-align:middle">' + toggleLabel + '</button></div>' +
+    '<div class="hrs-table"><table>' +
     '<thead>' + headerRow1 + headerRow2 + '</thead>' +
     '<tbody id="hrsByWfBody"></tbody></table></div>';
+
+  const hrsBreakdownToggle = document.getElementById('hrsBreakdownToggle');
+  if (hrsBreakdownToggle) {
+    hrsBreakdownToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      hrsShowBreakdown = !hrsShowBreakdown;
+      renderHrsByWf(filtered);
+    });
+  }
 
   const tbody = document.getElementById('hrsByWfBody');
 
   function addDataCells(row, dataByMonth, cls, isL1) {
     activeMonths.forEach(m => {
       const d = dataByMonth[m] || {prod:0, shrink:0, train:0, total:0};
+      if (!hrsShowBreakdown) {
+        const tdTotOnly = document.createElement('td');
+        tdTotOnly.className = (cls ? 'total-col ' : '') + 'section-divider';
+        tdTotOnly.style.fontWeight = isL1 ? '700' : '';
+        tdTotOnly.textContent = fmtInt(d.total);
+        row.appendChild(tdTotOnly);
+        return;
+      }
       const tdP = document.createElement('td');
       tdP.className = (cls ? 'prod-col ' : '') + 'section-divider';
       tdP.textContent = fmtInt(d.prod);
