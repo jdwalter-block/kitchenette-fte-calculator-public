@@ -692,7 +692,7 @@ function buildRowsVerticalWorkforceAllocation() {
 
   // Step 1: compute queue total-work hours.
   // Step 2: sum queue work-hours to vertical total-work hours.
-  // Step 3: apply queue workload% to vertical total-work hours for queue prod hours.
+  // Step 3: apply queue workload% to each queue's own total-work hours for queue prod hours.
   // Step 4: keep downstream shrink/total/FTE math unchanged.
   Object.keys(queuesByVertical).forEach(vertical => {
     const sd = shrinkData[vertical];
@@ -727,7 +727,7 @@ function buildRowsVerticalWorkforceAllocation() {
           const isInternal = wfType === 'Internal';
           const shrinkRate = isInternal ? (sd.shrinkInternal[month] || 0) : (sd.shrinkExternal[month] || 0);
 
-          const prodHrs = wlPct * verticalTotalWork;
+          const prodHrs = wlPct * q.totalWork;
           const shrinkHrs = (shrinkRate === 1) ? 0 : (shrinkRate / (1 - shrinkRate)) * prodHrs;
           const totalHrs = prodHrs + shrinkHrs;
           const fte = (wdFte === 0) ? 0 : totalHrs / 8 / wdFte;
@@ -1865,7 +1865,7 @@ function renderFormulas() {
     '<tr><td>Total Work (hrs)</td><td><code>Total Work = (Monthly Volume × AHT / 3600) / Occupancy</code></td><td>If AHT, Avg Volume, or Occupancy is 0, Total Work = 0.</td></tr>' +
     '<tr><td>Queue Total Work</td><td><code>Total Work (queue) = (Monthly Volume × AHT / 3600) / Occupancy</code></td><td>Computed for each queue first.</td></tr>' +
     '<tr><td>Vertical Total Work</td><td><code>Vertical Total Work = SUM(Total Work of all queues in vertical)</code></td><td>Used as common base for queue prod allocation.</td></tr>' +
-    '<tr><td>Queue Prod Hrs</td><td><code>Queue Prod Hrs = Vertical Total Work × Queue Workload%</code></td><td>Queue-level workload% from Workload% tab.</td></tr>' +
+    '<tr><td>Queue Prod Hrs</td><td><code>Queue Prod Hrs = Queue Total Work × Queue Workload%</code></td><td>Queue-level workload% from Workload% tab.</td></tr>' +
     '<tr><td>Shrink Hrs</td><td><code>Shrink Hrs = (Shrink Rate / (1 - Shrink Rate)) × Prod Hrs</code></td><td>Internal vs External shrink picked by workforce type.</td></tr>' +
     '<tr><td>Total Hrs</td><td><code>Total Hrs = Prod Hrs + Shrink Hrs</code></td><td>Queue and aggregate totals roll up from this.</td></tr>' +
     '<tr><td>Headcount (HC)</td><td><code>HC = Total Hrs / 8 / Working Days HC</code></td><td>Uses <code>Working Days HC</code>.</td></tr>' +
