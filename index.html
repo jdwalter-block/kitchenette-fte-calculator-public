@@ -258,10 +258,7 @@ Internal, Con - India, Con - Latam, Probe - India, ALMS - India, Sutherland - In
     <span class="row-count" id="rowCount">Showing 0 of 0 rows</span>
     <span class="row-count" id="fileStatus" style="color:var(--text3)">No file loaded</span>
     <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none">
-    <button class="btn" id="loadBtn">📂 Load Excel</button>
-    <button class="btn" id="refreshBtn" style="display:none">🔄 Refresh</button>
     <button class="btn btn-accent" id="exportBtn">⬇ Export CSV</button>
-    <button class="btn btn-accent" id="exportVarianceBtn">⬇ Export Variance XLSX</button>
   </div>
 </div>
 <div class="filter-bar">
@@ -2052,14 +2049,17 @@ function buildRiskVarianceExportData(filtered) {
   return {summaryRows, topDrivers, detailRows};
 }
 
-document.getElementById('exportVarianceBtn').addEventListener('click', () => {
-  const {summaryRows, topDrivers, detailRows} = buildRiskVarianceExportData(getFilteredRows());
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryRows), 'Summary');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(topDrivers), 'TopDrivers');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detailRows), 'Detail');
-  XLSX.writeFile(wb, 'risk_ops_variance_export.xlsx');
-});
+const exportVarianceBtn = document.getElementById('exportVarianceBtn');
+if (exportVarianceBtn) {
+  exportVarianceBtn.addEventListener('click', () => {
+    const {summaryRows, topDrivers, detailRows} = buildRiskVarianceExportData(getFilteredRows());
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryRows), 'Summary');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(topDrivers), 'TopDrivers');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detailRows), 'Detail');
+    XLSX.writeFile(wb, 'risk_ops_variance_export.xlsx');
+  });
+}
 
 // ===== FILE LOADING =====
 function rebuildFromData() {
@@ -2096,7 +2096,8 @@ function loadFile(file) {
       lastFileName = file.name;
       document.getElementById('fileStatus').textContent = '✓ ' + file.name;
       document.getElementById('fileStatus').style.color = 'var(--green)';
-      document.getElementById('refreshBtn').style.display = '';
+      const refreshBtn = document.getElementById('refreshBtn');
+      if (refreshBtn) refreshBtn.style.display = '';
       rebuildFromData();
     } catch (err) {
       document.getElementById('fileStatus').textContent = '✗ Error: ' + err.message;
@@ -2107,27 +2108,35 @@ function loadFile(file) {
   reader.readAsArrayBuffer(file);
 }
 
-// Load button
-document.getElementById('loadBtn').addEventListener('click', () => {
-  document.getElementById('fileInput').click();
-});
+// Optional file controls (if present in DOM)
+const loadBtn = document.getElementById('loadBtn');
+const fileInput = document.getElementById('fileInput');
+const refreshBtn = document.getElementById('refreshBtn');
 
-document.getElementById('fileInput').addEventListener('change', (e) => {
-  if (e.target.files.length > 0) {
-    loadFile(e.target.files[0]);
-  }
-});
+if (loadBtn && fileInput) {
+  loadBtn.addEventListener('click', () => {
+    fileInput.click();
+  });
+}
 
-// Refresh button — re-reads the same file if user re-selects it
-document.getElementById('refreshBtn').addEventListener('click', () => {
-  // We can't re-read the same File object due to browser security,
-  // so we open the file picker pre-filtered. User just clicks the same file.
-  document.getElementById('fileInput').value = '';
-  document.getElementById('fileInput').click();
-});
+if (fileInput) {
+  fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+      loadFile(e.target.files[0]);
+    }
+  });
+}
+
+if (refreshBtn && fileInput) {
+  // Re-reads the same file if user re-selects it
+  refreshBtn.addEventListener('click', () => {
+    fileInput.value = '';
+    fileInput.click();
+  });
+}
 
 // ===== INIT =====
-document.getElementById('fileStatus').textContent = '✓ Kitchenette_20260409.xlsx (built-in)';
+document.getElementById('fileStatus').textContent = '✓ Kitchenette_20260410.xlsx (built-in)';
 document.getElementById('fileStatus').style.color = 'var(--green)';
 initFilters();
 render();
