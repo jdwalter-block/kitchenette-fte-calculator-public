@@ -284,8 +284,7 @@ Internal, Con - India, Con - Latam, Probe - India, ALMS - India, Sutherland - In
   </div>
 </div>
 <div class="tabs">
-  <div class="tab" data-tab="pivotVertical">Headcount (HC) by Vertical</div>
-  <div class="tab active" data-tab="pivotVerticalNoQueues">Headcount (HC) by Vertical (No Queues)</div>
+  <div class="tab active" data-tab="pivotVertical">Headcount (HC) by Vertical</div>
   <div class="tab" data-tab="pivotVerticalIntExt">Headcount (HC) by Vertical (Int/Ext)</div>
   <div class="tab" data-tab="pivotWf">Headcount (HC) by Workforce</div>
   <div class="tab" data-tab="hrsByWf">Hours by Workforce</div>
@@ -301,7 +300,6 @@ Internal, Con - India, Con - Latam, Probe - India, ALMS - India, Sutherland - In
     </table>
   </div>
   <div id="pivotVerticalSection" class="section-hidden"></div>
-  <div id="pivotVerticalNoQueuesSection" class="section-hidden"></div>
   <div id="pivotVerticalIntExtSection" class="section-hidden"></div>
   <div id="pivotWfSection" class="section-hidden"></div>
   <div id="hrsByWfSection" class="section-hidden"></div>
@@ -859,7 +857,7 @@ let selectedVerticals = new Set(allVerticals);
 let selectedQueues = new Set(allQueues);
 let selectedWfTypes = new Set(allWfTypes);
 let selectedMonths = new Set(months);
-let activeTab = 'pivotVerticalNoQueues';
+let activeTab = 'pivotVertical';
 let sortCol = -1;
 let sortDir = 1;
 
@@ -1019,7 +1017,6 @@ function render() {
 
   document.getElementById('detailSection').classList.toggle('section-hidden', activeTab !== 'detail');
   document.getElementById('pivotVerticalSection').classList.toggle('section-hidden', activeTab !== 'pivotVertical');
-  document.getElementById('pivotVerticalNoQueuesSection').classList.toggle('section-hidden', activeTab !== 'pivotVerticalNoQueues');
   document.getElementById('pivotVerticalIntExtSection').classList.toggle('section-hidden', activeTab !== 'pivotVerticalIntExt');
   document.getElementById('pivotWfSection').classList.toggle('section-hidden', activeTab !== 'pivotWf');
   document.getElementById('hrsByWfSection').classList.toggle('section-hidden', activeTab !== 'hrsByWf');
@@ -1028,7 +1025,6 @@ function render() {
 
   if (activeTab === 'detail') renderDetail(filtered);
   else if (activeTab === 'pivotVertical') renderPivotVertical(filtered);
-  else if (activeTab === 'pivotVerticalNoQueues') renderPivotVerticalNoQueues(filtered);
   else if (activeTab === 'pivotVerticalIntExt') renderPivotVerticalIntExt(filtered);
   else if (activeTab === 'pivotWf') renderPivotWf(filtered);
   else if (activeTab === 'hrsByWf') renderHrsByWf(filtered);
@@ -1287,115 +1283,7 @@ function wfTypeCompare(a, b) {
 }
 
 // ===== HIERARCHICAL PIVOT BY VERTICAL (NO QUEUE BREAKOUT) =====
-function renderPivotVerticalNoQueues(filtered) {
-  const container = document.getElementById('pivotVerticalNoQueuesSection');
-  const activeMonths = months.filter(m => selectedMonths.has(m));
 
-  // Build tree: vertical -> wfType -> { month: fte }
-  const tree = {};
-  const verticalAgg = {};
-  const grandTotal = {};
-  activeMonths.forEach(m => grandTotal[m] = 0);
-
-  filtered.forEach(r => {
-    const v = r.vertical;
-    const wf = r.wfType;
-    const m = r.month;
-
-    if (!tree[v]) tree[v] = {};
-    if (!tree[v][wf]) {
-      tree[v][wf] = {};
-      activeMonths.forEach(mm => tree[v][wf][mm] = 0);
-    }
-    tree[v][wf][m] += r.fte;
-
-    if (!verticalAgg[v]) {
-      verticalAgg[v] = {};
-      activeMonths.forEach(mm => verticalAgg[v][mm] = 0);
-    }
-    verticalAgg[v][m] += r.fte;
-    grandTotal[m] += r.fte;
-  });
-
-  container.innerHTML = '<div class="pivot-title">Headcount (HC) by Vertical → Workforce Type (No Queues)</div><div class="hier-table"><table><thead><tr><th style="min-width:280px">Name</th>' +
-    activeMonths.map(m => '<th class="num-col">' + formatDisplayMonth(m) + '</th>').join('') +
-    '<th class="num-col">Total</th></tr></thead><tbody id="verticalNoQueueBody"></tbody></table></div>';
-
-  const tbody = document.getElementById('verticalNoQueueBody');
-  const sortedVerticals = Object.keys(tree).sort();
-
-  sortedVerticals.forEach(v => {
-    const vExpanded = hierNoQueueExpandedVerticals.has(v);
-    const vTotal = activeMonths.reduce((s, m) => s + ((verticalAgg[v] && verticalAgg[v][m]) || 0), 0);
-
-    const vtr = document.createElement('tr');
-    vtr.className = 'level-1';
-    const vtd = document.createElement('td');
-    vtd.className = 'name-cell indent-1';
-    vtd.innerHTML = '<span class="toggle-arrow">' + (vExpanded ? '▼' : '▶') + '</span> ' + escHtml(v);
-    vtr.appendChild(vtd);
-    activeMonths.forEach(m => {
-      const td = document.createElement('td');
-      td.className = 'num-cell';
-      td.textContent = fmtInt((verticalAgg[v] && verticalAgg[v][m]) || 0);
-      vtr.appendChild(td);
-    });
-    const vTotalTd = document.createElement('td');
-    vTotalTd.className = 'num-cell';
-    vTotalTd.textContent = fmtInt(vTotal);
-    vtr.appendChild(vTotalTd);
-
-    vtr.addEventListener('click', () => {
-      if (hierNoQueueExpandedVerticals.has(v)) hierNoQueueExpandedVerticals.delete(v);
-      else hierNoQueueExpandedVerticals.add(v);
-      renderPivotVerticalNoQueues(filtered);
-    });
-    tbody.appendChild(vtr);
-
-    if (!vExpanded) return;
-
-    const sortedWf = Object.keys(tree[v]).sort(wfTypeCompare);
-    sortedWf.forEach(wf => {
-      const wfTotal = activeMonths.reduce((s, m) => s + ((tree[v][wf] && tree[v][wf][m]) || 0), 0);
-      const wtr = document.createElement('tr');
-      wtr.className = 'level-2';
-      const wtd = document.createElement('td');
-      wtd.className = 'name-cell indent-2';
-      wtd.innerHTML = '<span class="wf-dot" style="background:' + wfDotColor(wf) + '"></span> ' + escHtml(wf);
-      wtr.appendChild(wtd);
-      activeMonths.forEach(m => {
-        const td = document.createElement('td');
-        td.className = 'num-cell';
-        td.textContent = fmtInt((tree[v][wf] && tree[v][wf][m]) || 0);
-        wtr.appendChild(td);
-      });
-      const wTotalTd = document.createElement('td');
-      wTotalTd.className = 'num-cell';
-      wTotalTd.textContent = fmtInt(wfTotal);
-      wtr.appendChild(wTotalTd);
-      tbody.appendChild(wtr);
-    });
-  });
-
-  const gtTotal = activeMonths.reduce((s, m) => s + (grandTotal[m] || 0), 0);
-  const gtr = document.createElement('tr');
-  gtr.className = 'hier-total';
-  const gtd = document.createElement('td');
-  gtd.className = 'name-cell indent-1';
-  gtd.textContent = 'GRAND TOTAL';
-  gtr.appendChild(gtd);
-  activeMonths.forEach(m => {
-    const td = document.createElement('td');
-    td.className = 'num-cell';
-    td.textContent = fmtInt(grandTotal[m] || 0);
-    gtr.appendChild(td);
-  });
-  const gtTotalTd = document.createElement('td');
-  gtTotalTd.className = 'num-cell';
-  gtTotalTd.textContent = fmtInt(gtTotal);
-  gtr.appendChild(gtTotalTd);
-  tbody.appendChild(gtr);
-}
 
 // ===== HIERARCHICAL PIVOT BY VERTICAL -> INT/EXT -> WORKFORCE =====
 function renderPivotVerticalIntExt(filtered) {
