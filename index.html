@@ -852,7 +852,7 @@ buildAllRows();
 
 // ===== FILTER STATE =====
 let allVerticals = [...new Set(workloadData.map(w=>w.vertical))].sort();
-let allWfTypes = [...new Set(workloadPctData.map(w=>w.type))].sort();
+let allWfTypes = [...new Set(workloadPctData.map(w=>w.type))].sort(wfTypeCompare);
 let allQueues = [...new Set(workloadData.map(w=>w.queue))].sort();
 
 let selectedVerticals = new Set(allVerticals);
@@ -1042,6 +1042,7 @@ function renderDetail(filtered) {
     const col = columns[sortCol];
     rows.sort((a, b) => {
       let va = a[col.key], vb = b[col.key];
+      if (col.key === 'wfType') return sortDir * wfTypeCompare(va, vb);
       if (typeof va === 'string') return sortDir * va.localeCompare(vb);
       return sortDir * (va - vb);
     });
@@ -1145,7 +1146,7 @@ function renderPivotVertical(filtered) {
       const qKey = v + '|||' + q;
       queueAgg[qKey] = {};
       activeMonths.forEach(m => queueAgg[qKey][m] = 0);
-      Object.keys(tree[v][q]).sort().forEach(wf => {
+      Object.keys(tree[v][q]).sort(wfTypeCompare).forEach(wf => {
         activeMonths.forEach(m => {
           const val = tree[v][q][wf][m] || 0;
           queueAgg[qKey][m] += val;
@@ -1231,7 +1232,7 @@ function renderPivotVertical(filtered) {
 
       if (!qExpanded) return;
 
-      const sortedWf = Object.keys(tree[v][q]).sort();
+      const sortedWf = Object.keys(tree[v][q]).sort(wfTypeCompare);
       sortedWf.forEach(wf => {
         const wfTotal = activeMonths.reduce((s, m) => s + (tree[v][q][wf][m] || 0), 0);
         const wtr = document.createElement('tr');
@@ -1277,6 +1278,12 @@ function renderPivotVertical(filtered) {
 
 function escHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function wfTypeCompare(a, b) {
+  if (a === 'Internal' && b !== 'Internal') return -1;
+  if (b === 'Internal' && a !== 'Internal') return 1;
+  return String(a).localeCompare(String(b));
 }
 
 // ===== HIERARCHICAL PIVOT BY VERTICAL (NO QUEUE BREAKOUT) =====
@@ -1347,7 +1354,7 @@ function renderPivotVerticalNoQueues(filtered) {
 
     if (!vExpanded) return;
 
-    const sortedWf = Object.keys(tree[v]).sort();
+    const sortedWf = Object.keys(tree[v]).sort(wfTypeCompare);
     sortedWf.forEach(wf => {
       const wfTotal = activeMonths.reduce((s, m) => s + ((tree[v][wf] && tree[v][wf][m]) || 0), 0);
       const wtr = document.createElement('tr');
@@ -1500,7 +1507,7 @@ function renderPivotVerticalIntExt(filtered) {
 
       if (!gExpanded) return;
 
-      const sortedWf = Object.keys(tree[v][g]).sort();
+      const sortedWf = Object.keys(tree[v][g]).sort(wfTypeCompare);
       sortedWf.forEach(wf => {
         const wfTotal = activeMonths.reduce((s, m) => s + ((tree[v][g][wf] && tree[v][g][wf][m]) || 0), 0);
         const wtr = document.createElement('tr');
@@ -1582,7 +1589,7 @@ function renderPivotWf(filtered) {
     '<th class="num-col">Total</th></tr></thead><tbody id="wfHierBody"></tbody></table></div>';
 
   const tbody = document.getElementById('wfHierBody');
-  const sortedWf = Object.keys(tree).sort();
+  const sortedWf = Object.keys(tree).sort(wfTypeCompare);
 
   sortedWf.forEach(wf => {
     const wfExpanded = wfHierExpandedWf.has(wf);
@@ -1784,7 +1791,7 @@ function renderHrsByWf(filtered) {
     });
   }
 
-  const sortedWf = Object.keys(tree).sort();
+  const sortedWf = Object.keys(tree).sort(wfTypeCompare);
   sortedWf.forEach(wf => {
     const wfExp = hrsExpandedWf.has(wf);
 
@@ -2064,7 +2071,7 @@ if (exportVarianceBtn) {
 // ===== FILE LOADING =====
 function rebuildFromData() {
   allVerticals = [...new Set(workloadData.map(w => w.vertical))].sort();
-  allWfTypes = [...new Set(workloadPctData.map(w => w.type))].sort();
+  allWfTypes = [...new Set(workloadPctData.map(w => w.type))].sort(wfTypeCompare);
   allQueues = [...new Set(workloadData.map(w => w.queue))].sort();
 
   selectedVerticals = new Set(allVerticals);
