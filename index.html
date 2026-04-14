@@ -289,6 +289,7 @@ Internal, Con - India, Con - Latam, Probe - India, ALMS - India, Sutherland - In
   <div class="tab" data-tab="pivotWf">Headcount (HC) by Workforce</div>
   <div class="tab" data-tab="hrsByWf">Hours by Workforce</div>
   <div class="tab" data-tab="currentStaff">Current Staff</div>
+  <div class="tab" data-tab="netStaffing">Net Staffing</div>
   <div class="tab" data-tab="formulas">Formulas</div>
   <div class="tab" data-tab="versionHistory">Version History</div>
   <div class="tab" data-tab="detail">Detail Table</div>
@@ -305,6 +306,7 @@ Internal, Con - India, Con - Latam, Probe - India, ALMS - India, Sutherland - In
   <div id="pivotWfSection" class="section-hidden"></div>
   <div id="hrsByWfSection" class="section-hidden"></div>
   <div id="currentStaffSection" class="section-hidden"></div>
+  <div id="netStaffingSection" class="section-hidden"></div>
   <div id="formulasSection" class="section-hidden"></div>
   <div id="versionHistorySection" class="section-hidden"></div>
 </div>
@@ -877,6 +879,8 @@ let hrsExpandedVert = new Set();
 let hrsShowBreakdown = false;
 let currentStaffExpandedVerticals = new Set();
 let currentStaffExpandedSubs = new Set();
+let netStaffExpandedVerticals = new Set();
+let netStaffExpandedSubs = new Set();
 
 // ===== FORMAT HELPERS =====
 const fmtInt = n => n === 0 ? '0' : n.toLocaleString('en-US', {maximumFractionDigits:0});
@@ -1023,7 +1027,7 @@ function getFilteredCurrentStaffRows() {
 
 function render() {
   const filtered = getFilteredRows();
-  if (activeTab === 'currentStaff') {
+  if (activeTab === 'currentStaff' || activeTab === 'netStaffing') {
     const staffRows = getFilteredCurrentStaffRows();
     document.getElementById('rowCount').textContent = 'Showing ' + staffRows.length.toLocaleString() + ' of ' + currentStaffData.length.toLocaleString() + ' rows';
   } else {
@@ -1036,6 +1040,7 @@ function render() {
   document.getElementById('pivotWfSection').classList.toggle('section-hidden', activeTab !== 'pivotWf');
   document.getElementById('hrsByWfSection').classList.toggle('section-hidden', activeTab !== 'hrsByWf');
   document.getElementById('currentStaffSection').classList.toggle('section-hidden', activeTab !== 'currentStaff');
+  document.getElementById('netStaffingSection').classList.toggle('section-hidden', activeTab !== 'netStaffing');
   document.getElementById('formulasSection').classList.toggle('section-hidden', activeTab !== 'formulas');
   document.getElementById('versionHistorySection').classList.toggle('section-hidden', activeTab !== 'versionHistory');
 
@@ -1045,6 +1050,7 @@ function render() {
   else if (activeTab === 'pivotWf') renderPivotWf(filtered);
   else if (activeTab === 'hrsByWf') renderHrsByWf(filtered);
   else if (activeTab === 'currentStaff') renderCurrentStaff();
+  else if (activeTab === 'netStaffing') renderNetStaffing(filtered);
   else if (activeTab === 'formulas') renderFormulas();
   else if (activeTab === 'versionHistory') renderVersionHistory();
 }
@@ -1888,13 +1894,13 @@ function renderCurrentStaff() {
     activeMonths.forEach(m => {
       const td = document.createElement('td');
       td.className = 'num-cell';
-      td.textContent = fmtDec2(verticalAgg[v][m] || 0);
+      td.textContent = fmtInt(verticalAgg[v][m] || 0);
       vtr.appendChild(td);
     });
 
     const totalTd = document.createElement('td');
     totalTd.className = 'num-cell';
-    totalTd.textContent = fmtDec2(vTotal);
+    totalTd.textContent = fmtInt(vTotal);
     vtr.appendChild(totalTd);
 
     vtr.addEventListener('click', () => {
@@ -1921,13 +1927,13 @@ function renderCurrentStaff() {
       activeMonths.forEach(m => {
         const td = document.createElement('td');
         td.className = 'num-cell';
-        td.textContent = fmtDec2(subAgg[subKey][m] || 0);
+        td.textContent = fmtInt(subAgg[subKey][m] || 0);
         str.appendChild(td);
       });
 
       const subTotalTd = document.createElement('td');
       subTotalTd.className = 'num-cell';
-      subTotalTd.textContent = fmtDec2(subTotal);
+      subTotalTd.textContent = fmtInt(subTotal);
       str.appendChild(subTotalTd);
 
       str.addEventListener('click', (e) => {
@@ -1952,13 +1958,13 @@ function renderCurrentStaff() {
         activeMonths.forEach(m => {
           const td = document.createElement('td');
           td.className = 'num-cell';
-          td.textContent = fmtDec2(tree[v][sub][wf][m] || 0);
+          td.textContent = fmtInt(tree[v][sub][wf][m] || 0);
           wtr.appendChild(td);
         });
 
         const wfTotalTd = document.createElement('td');
         wfTotalTd.className = 'num-cell';
-        wfTotalTd.textContent = fmtDec2(wfTotal);
+        wfTotalTd.textContent = fmtInt(wfTotal);
         wtr.appendChild(wfTotalTd);
         tbody.appendChild(wtr);
       });
@@ -1976,13 +1982,189 @@ function renderCurrentStaff() {
   activeMonths.forEach(m => {
     const td = document.createElement('td');
     td.className = 'num-cell';
-    td.textContent = fmtDec2(grandTotal[m] || 0);
+    td.textContent = fmtInt(grandTotal[m] || 0);
     gtr.appendChild(td);
   });
 
   const gtTd = document.createElement('td');
   gtTd.className = 'num-cell';
-  gtTd.textContent = fmtDec2(gt);
+  gtTd.textContent = fmtInt(gt);
+  gtr.appendChild(gtTd);
+  tbody.appendChild(gtr);
+}
+
+function normalizeStaffKey(s) {
+  return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function buildCalculatedStaffMap() {
+  const map = {};
+  allRows.forEach(r => {
+    const vKey = normalizeStaffKey(r.vertical);
+    const qKey = normalizeStaffKey(r.queue);
+    const key = vKey + '|||' + qKey;
+    if (!map[key]) map[key] = {};
+    if (!map[key][r.month]) map[key][r.month] = {internal:0, external:0};
+    if (r.wfType === 'Internal') map[key][r.month].internal += (r.fte || 0);
+    else map[key][r.month].external += (r.fte || 0);
+  });
+  return map;
+}
+
+function renderNetStaffing() {
+  const container = document.getElementById('netStaffingSection');
+  const activeMonths = months.filter(m => selectedMonths.has(m));
+  const rows = getFilteredCurrentStaffRows();
+
+  if (!rows.length) {
+    container.innerHTML = '<div class="pivot-title">Net Staffing</div><div class="version-empty">No rows match the current filters.</div>';
+    return;
+  }
+
+  const calcMap = buildCalculatedStaffMap();
+  const tree = {};
+  const verticalAgg = {};
+  const subAgg = {};
+  const grandTotal = {};
+  activeMonths.forEach(m => grandTotal[m] = 0);
+
+  rows.forEach(r => {
+    if (!tree[r.vertical]) tree[r.vertical] = {};
+    if (!tree[r.vertical][r.subVertical]) {
+      tree[r.vertical][r.subVertical] = { Internal: {}, External: {} };
+      activeMonths.forEach(m => {
+        tree[r.vertical][r.subVertical].Internal[m] = 0;
+        tree[r.vertical][r.subVertical].External[m] = 0;
+      });
+    }
+
+    const key = normalizeStaffKey(r.vertical) + '|||' + normalizeStaffKey(r.subVertical);
+    activeMonths.forEach(m => {
+      const cur = (r.staff && r.staff[m]) ? r.staff[m] : {internal:0, external:0};
+      const calc = (calcMap[key] && calcMap[key][m]) ? calcMap[key][m] : {internal:0, external:0};
+      tree[r.vertical][r.subVertical].Internal[m] += (cur.internal || 0) - (calc.internal || 0);
+      tree[r.vertical][r.subVertical].External[m] += (cur.external || 0) - (calc.external || 0);
+    });
+  });
+
+  Object.keys(tree).sort().forEach(v => {
+    verticalAgg[v] = {};
+    activeMonths.forEach(m => verticalAgg[v][m] = 0);
+    Object.keys(tree[v]).sort().forEach(sub => {
+      const subKey = v + '|||' + sub;
+      subAgg[subKey] = {};
+      activeMonths.forEach(m => {
+        const val = (tree[v][sub].Internal[m] || 0) + (tree[v][sub].External[m] || 0);
+        subAgg[subKey][m] = val;
+        verticalAgg[v][m] += val;
+        grandTotal[m] += val;
+      });
+    });
+  });
+
+  let html = '<div class="pivot-title">Net Staffing by Vertical — Hierarchical Drill-Down (Current - Calculated)</div>';
+  html += '<div class="hier-table"><table><thead><tr><th style="min-width:280px">Name</th>';
+  activeMonths.forEach(m => html += '<th class="num-col">' + formatDisplayMonth(m) + '</th>');
+  html += '<th class="num-col">Total</th></tr></thead><tbody id="netStaffBody"></tbody></table></div>';
+  container.innerHTML = html;
+
+  const tbody = document.getElementById('netStaffBody');
+
+  Object.keys(tree).sort().forEach(v => {
+    const vExpanded = netStaffExpandedVerticals.has(v);
+    const vTotal = activeMonths.reduce((s, m) => s + (verticalAgg[v][m] || 0), 0);
+    const vtr = document.createElement('tr');
+    vtr.className = 'level-1';
+    const vtd = document.createElement('td');
+    vtd.className = 'name-cell indent-1';
+    vtd.innerHTML = '<span class="toggle-arrow">' + (vExpanded ? '▼' : '▶') + '</span> ' + escHtml(v);
+    vtr.appendChild(vtd);
+    activeMonths.forEach(m => {
+      const td = document.createElement('td');
+      td.className = 'num-cell';
+      td.textContent = fmtInt(verticalAgg[v][m] || 0);
+      vtr.appendChild(td);
+    });
+    const vTotalTd = document.createElement('td');
+    vTotalTd.className = 'num-cell';
+    vTotalTd.textContent = fmtInt(vTotal);
+    vtr.appendChild(vTotalTd);
+    vtr.addEventListener('click', () => {
+      if (netStaffExpandedVerticals.has(v)) netStaffExpandedVerticals.delete(v);
+      else netStaffExpandedVerticals.add(v);
+      renderNetStaffing();
+    });
+    tbody.appendChild(vtr);
+    if (!vExpanded) return;
+
+    Object.keys(tree[v]).sort().forEach(sub => {
+      const subKey = v + '|||' + sub;
+      const subExpanded = netStaffExpandedSubs.has(subKey);
+      const subTotal = activeMonths.reduce((s, m) => s + (subAgg[subKey][m] || 0), 0);
+      const str = document.createElement('tr');
+      str.className = 'level-2';
+      const std = document.createElement('td');
+      std.className = 'name-cell indent-2';
+      std.innerHTML = '<span class="toggle-arrow">' + (subExpanded ? '▼' : '▶') + '</span> ' + escHtml(sub);
+      str.appendChild(std);
+      activeMonths.forEach(m => {
+        const td = document.createElement('td');
+        td.className = 'num-cell';
+        td.textContent = fmtInt(subAgg[subKey][m] || 0);
+        str.appendChild(td);
+      });
+      const subTotalTd = document.createElement('td');
+      subTotalTd.className = 'num-cell';
+      subTotalTd.textContent = fmtInt(subTotal);
+      str.appendChild(subTotalTd);
+      str.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (netStaffExpandedSubs.has(subKey)) netStaffExpandedSubs.delete(subKey);
+        else netStaffExpandedSubs.add(subKey);
+        renderNetStaffing();
+      });
+      tbody.appendChild(str);
+      if (!subExpanded) return;
+
+      ['Internal','External'].forEach(wf => {
+        const wtr = document.createElement('tr');
+        wtr.className = 'level-3';
+        const wtd = document.createElement('td');
+        wtd.className = 'name-cell indent-3';
+        wtd.textContent = wf;
+        wtr.appendChild(wtd);
+        const wfTotal = activeMonths.reduce((s, m) => s + (tree[v][sub][wf][m] || 0), 0);
+        activeMonths.forEach(m => {
+          const td = document.createElement('td');
+          td.className = 'num-cell';
+          td.textContent = fmtInt(tree[v][sub][wf][m] || 0);
+          wtr.appendChild(td);
+        });
+        const wfTotalTd = document.createElement('td');
+        wfTotalTd.className = 'num-cell';
+        wfTotalTd.textContent = fmtInt(wfTotal);
+        wtr.appendChild(wfTotalTd);
+        tbody.appendChild(wtr);
+      });
+    });
+  });
+
+  const gt = activeMonths.reduce((s, m) => s + (grandTotal[m] || 0), 0);
+  const gtr = document.createElement('tr');
+  gtr.className = 'hier-total';
+  const gtd = document.createElement('td');
+  gtd.className = 'name-cell indent-1';
+  gtd.textContent = 'GRAND TOTAL';
+  gtr.appendChild(gtd);
+  activeMonths.forEach(m => {
+    const td = document.createElement('td');
+    td.className = 'num-cell';
+    td.textContent = fmtInt(grandTotal[m] || 0);
+    gtr.appendChild(td);
+  });
+  const gtTd = document.createElement('td');
+  gtTd.className = 'num-cell';
+  gtTd.textContent = fmtInt(gt);
   gtr.appendChild(gtTd);
   tbody.appendChild(gtr);
 }
@@ -2197,6 +2379,8 @@ function rebuildFromData() {
   hrsExpandedVert = new Set();
   currentStaffExpandedVerticals = new Set();
   currentStaffExpandedSubs = new Set();
+  netStaffExpandedVerticals = new Set();
+  netStaffExpandedSubs = new Set();
 
   initFilters();
   render();
