@@ -875,6 +875,8 @@ let wfHierExpandedVerticals = new Set();
 let hrsExpandedWf = new Set();
 let hrsExpandedVert = new Set();
 let hrsShowBreakdown = false;
+let currentStaffExpandedVerticals = new Set();
+let currentStaffExpandedSubs = new Set();
 
 // ===== FORMAT HELPERS =====
 const fmtInt = n => n === 0 ? '0' : n.toLocaleString('en-US', {maximumFractionDigits:0});
@@ -1822,61 +1824,167 @@ function renderCurrentStaff() {
     return;
   }
 
-  const byVertical = {};
+  const tree = {};
+  const verticalAgg = {};
+  const subAgg = {};
+  const grandTotal = {};
+  activeMonths.forEach(m => grandTotal[m] = 0);
+
   rows.forEach(r => {
-    if (!byVertical[r.vertical]) byVertical[r.vertical] = [];
-    byVertical[r.vertical].push(r);
-  });
-
-  let html = '<div class="pivot-title">Current Staff (Internal / External by Month)</div><div class="hier-table"><table><thead><tr><th style="min-width:160px">Vertical</th><th style="min-width:260px">Sub-Vertical</th>';
-  activeMonths.forEach(m => {
-    html += '<th>Int ' + formatDisplayMonth(m) + '</th><th>Ext ' + formatDisplayMonth(m) + '</th><th>Total ' + formatDisplayMonth(m) + '</th>';
-  });
-  html += '</tr></thead><tbody>';
-
-  const grand = {};
-  activeMonths.forEach(m => { grand[m] = {internal:0, external:0, total:0}; });
-
-  Object.keys(byVertical).sort().forEach(v => {
-    const vRows = byVertical[v].sort((a, b) => a.subVertical.localeCompare(b.subVertical));
-    const vTotal = {};
-    activeMonths.forEach(m => { vTotal[m] = {internal:0, external:0, total:0}; });
-
-    vRows.forEach((r, idx) => {
-      html += '<tr>';
-      html += '<td>' + (idx === 0 ? '<b>' + escHtml(v) + '</b>' : '') + '</td>';
-      html += '<td>' + escHtml(r.subVertical) + '</td>';
+    if (!tree[r.vertical]) tree[r.vertical] = {};
+    if (!tree[r.vertical][r.subVertical]) {
+      tree[r.vertical][r.subVertical] = {
+        Internal: {},
+        External: {}
+      };
       activeMonths.forEach(m => {
-        const monthVals = (r.staff && r.staff[m]) ? r.staff[m] : {internal:0, external:0};
-        const it = monthVals.internal || 0;
-        const ex = monthVals.external || 0;
-        const tot = it + ex;
-        vTotal[m].internal += it;
-        vTotal[m].external += ex;
-        vTotal[m].total += tot;
-        grand[m].internal += it;
-        grand[m].external += ex;
-        grand[m].total += tot;
-        html += '<td class="num">' + fmtDec2(it) + '</td><td class="num">' + fmtDec2(ex) + '</td><td class="num fte">' + fmtDec2(tot) + '</td>';
+        tree[r.vertical][r.subVertical].Internal[m] = 0;
+        tree[r.vertical][r.subVertical].External[m] = 0;
       });
-      html += '</tr>';
-    });
+    }
 
-    html += '<tr class="totals-row"><td colspan="2"><b>' + escHtml(v) + ' Total</b></td>';
     activeMonths.forEach(m => {
-      html += '<td class="num"><b>' + fmtDec2(vTotal[m].internal) + '</b></td><td class="num"><b>' + fmtDec2(vTotal[m].external) + '</b></td><td class="num fte"><b>' + fmtDec2(vTotal[m].total) + '</b></td>';
+      const monthVals = (r.staff && r.staff[m]) ? r.staff[m] : {internal:0, external:0};
+      tree[r.vertical][r.subVertical].Internal[m] += monthVals.internal || 0;
+      tree[r.vertical][r.subVertical].External[m] += monthVals.external || 0;
     });
-    html += '</tr>';
   });
 
-  html += '<tr class="totals-row"><td colspan="2"><b>Grand Total</b></td>';
-  activeMonths.forEach(m => {
-    html += '<td class="num"><b>' + fmtDec2(grand[m].internal) + '</b></td><td class="num"><b>' + fmtDec2(grand[m].external) + '</b></td><td class="num fte"><b>' + fmtDec2(grand[m].total) + '</b></td>';
-  });
-  html += '</tr>';
+  Object.keys(tree).sort().forEach(v => {
+    verticalAgg[v] = {};
+    activeMonths.forEach(m => verticalAgg[v][m] = 0);
 
-  html += '</tbody></table></div>';
+    Object.keys(tree[v]).sort().forEach(sub => {
+      const subKey = v + '|||' + sub;
+      subAgg[subKey] = {};
+      activeMonths.forEach(m => {
+        const val = (tree[v][sub].Internal[m] || 0) + (tree[v][sub].External[m] || 0);
+        subAgg[subKey][m] = val;
+        verticalAgg[v][m] += val;
+        grandTotal[m] += val;
+      });
+    });
+  });
+
+  let html = '<div class="pivot-title">Current Staff by Vertical — Hierarchical Drill-Down</div>';
+  html += '<div class="hier-table"><table><thead><tr><th style="min-width:280px">Name</th>';
+  activeMonths.forEach(m => html += '<th class="num-col">' + formatDisplayMonth(m) + '</th>');
+  html += '<th class="num-col">Total</th></tr></thead><tbody id="currentStaffBody"></tbody></table></div>';
   container.innerHTML = html;
+
+  const tbody = document.getElementById('currentStaffBody');
+
+  Object.keys(tree).sort().forEach(v => {
+    const vExpanded = currentStaffExpandedVerticals.has(v);
+    const vTotal = activeMonths.reduce((s, m) => s + (verticalAgg[v][m] || 0), 0);
+
+    const vtr = document.createElement('tr');
+    vtr.className = 'level-1';
+    let vtd = document.createElement('td');
+    vtd.className = 'name-cell indent-1';
+    vtd.innerHTML = '<span class="toggle-arrow">' + (vExpanded ? '▼' : '▶') + '</span> ' + escHtml(v);
+    vtr.appendChild(vtd);
+
+    activeMonths.forEach(m => {
+      const td = document.createElement('td');
+      td.className = 'num-cell';
+      td.textContent = fmtDec2(verticalAgg[v][m] || 0);
+      vtr.appendChild(td);
+    });
+
+    const totalTd = document.createElement('td');
+    totalTd.className = 'num-cell';
+    totalTd.textContent = fmtDec2(vTotal);
+    vtr.appendChild(totalTd);
+
+    vtr.addEventListener('click', () => {
+      if (currentStaffExpandedVerticals.has(v)) currentStaffExpandedVerticals.delete(v);
+      else currentStaffExpandedVerticals.add(v);
+      renderCurrentStaff();
+    });
+
+    tbody.appendChild(vtr);
+    if (!vExpanded) return;
+
+    Object.keys(tree[v]).sort().forEach(sub => {
+      const subKey = v + '|||' + sub;
+      const subExpanded = currentStaffExpandedSubs.has(subKey);
+      const subTotal = activeMonths.reduce((s, m) => s + (subAgg[subKey][m] || 0), 0);
+
+      const str = document.createElement('tr');
+      str.className = 'level-2';
+      let std = document.createElement('td');
+      std.className = 'name-cell indent-2';
+      std.innerHTML = '<span class="toggle-arrow">' + (subExpanded ? '▼' : '▶') + '</span> ' + escHtml(sub);
+      str.appendChild(std);
+
+      activeMonths.forEach(m => {
+        const td = document.createElement('td');
+        td.className = 'num-cell';
+        td.textContent = fmtDec2(subAgg[subKey][m] || 0);
+        str.appendChild(td);
+      });
+
+      const subTotalTd = document.createElement('td');
+      subTotalTd.className = 'num-cell';
+      subTotalTd.textContent = fmtDec2(subTotal);
+      str.appendChild(subTotalTd);
+
+      str.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (currentStaffExpandedSubs.has(subKey)) currentStaffExpandedSubs.delete(subKey);
+        else currentStaffExpandedSubs.add(subKey);
+        renderCurrentStaff();
+      });
+
+      tbody.appendChild(str);
+      if (!subExpanded) return;
+
+      ['Internal','External'].forEach(wf => {
+        const wtr = document.createElement('tr');
+        wtr.className = 'level-3';
+        const wtd = document.createElement('td');
+        wtd.className = 'name-cell indent-3';
+        wtd.textContent = wf;
+        wtr.appendChild(wtd);
+
+        const wfTotal = activeMonths.reduce((s, m) => s + (tree[v][sub][wf][m] || 0), 0);
+        activeMonths.forEach(m => {
+          const td = document.createElement('td');
+          td.className = 'num-cell';
+          td.textContent = fmtDec2(tree[v][sub][wf][m] || 0);
+          wtr.appendChild(td);
+        });
+
+        const wfTotalTd = document.createElement('td');
+        wfTotalTd.className = 'num-cell';
+        wfTotalTd.textContent = fmtDec2(wfTotal);
+        wtr.appendChild(wfTotalTd);
+        tbody.appendChild(wtr);
+      });
+    });
+  });
+
+  const gt = activeMonths.reduce((s, m) => s + (grandTotal[m] || 0), 0);
+  const gtr = document.createElement('tr');
+  gtr.className = 'hier-total';
+  const gtd = document.createElement('td');
+  gtd.className = 'name-cell indent-1';
+  gtd.textContent = 'GRAND TOTAL';
+  gtr.appendChild(gtd);
+
+  activeMonths.forEach(m => {
+    const td = document.createElement('td');
+    td.className = 'num-cell';
+    td.textContent = fmtDec2(grandTotal[m] || 0);
+    gtr.appendChild(td);
+  });
+
+  const gtTd = document.createElement('td');
+  gtTd.className = 'num-cell';
+  gtTd.textContent = fmtDec2(gt);
+  gtr.appendChild(gtTd);
+  tbody.appendChild(gtr);
 }
 
 function renderVersionHistory() {
@@ -2087,6 +2195,8 @@ function rebuildFromData() {
   wfHierExpandedVerticals = new Set();
   hrsExpandedWf = new Set();
   hrsExpandedVert = new Set();
+  currentStaffExpandedVerticals = new Set();
+  currentStaffExpandedSubs = new Set();
 
   initFilters();
   render();
