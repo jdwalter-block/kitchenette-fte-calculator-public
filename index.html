@@ -1982,11 +1982,22 @@ function normalizeStaffKey(s) {
   return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
+function normalizeStaffQueueKey(vertical, queueOrSubVertical) {
+  const vKey = normalizeStaffKey(vertical);
+  const raw = String(queueOrSubVertical || '').trim();
+  const qKey = normalizeStaffKey(raw);
+
+  // Disputes naming mismatch: CurrentStaff uses "Appeal", workload uses "Appeals".
+  if (vKey === 'disputes' && qKey === 'appeal') return 'appeals';
+
+  return qKey;
+}
+
 function buildCalculatedStaffMap() {
   const map = {};
   allRows.forEach(r => {
     const vKey = normalizeStaffKey(r.vertical);
-    const qKey = normalizeStaffKey(r.queue);
+    const qKey = normalizeStaffQueueKey(r.vertical, r.queue);
     const key = vKey + '|||' + qKey;
     if (!map[key]) map[key] = {};
     if (!map[key][r.month]) map[key][r.month] = {internal:0, external:0};
@@ -2023,7 +2034,7 @@ function renderNetStaffing() {
       });
     }
 
-    const key = normalizeStaffKey(r.vertical) + '|||' + normalizeStaffKey(r.subVertical);
+    const key = normalizeStaffKey(r.vertical) + '|||' + normalizeStaffQueueKey(r.vertical, r.subVertical);
     activeMonths.forEach(m => {
       const cur = (r.staff && r.staff[m]) ? r.staff[m] : {internal:0, external:0};
       const calc = (calcMap[key] && calcMap[key][m]) ? calcMap[key][m] : {internal:0, external:0};
