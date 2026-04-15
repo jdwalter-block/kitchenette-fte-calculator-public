@@ -349,6 +349,60 @@ let currentStaffData = [{"vertical":"Afterpay","subVertical":"AfterPay - Cards",
 let lastFile = null;
 let lastFileName = '';
 const internalHcOverrides = {};
+const WORKFORCE_INPUTS_STORAGE_KEY = 'kitchenette_workforce_inputs_v1';
+
+function loadSavedWorkforceInputs() {
+  try {
+    const raw = localStorage.getItem(WORKFORCE_INPUTS_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    return parsed;
+  } catch (_) {
+    return null;
+  }
+}
+
+function saveWorkforceInputs() {
+  try {
+    const pct = {};
+    workloadPctData.forEach(w => {
+      months.forEach(m => {
+        pct[w.vertical + '|||' + w.queue + '|||' + w.type + '|||' + m] = Number.isFinite(w.pct[m]) ? w.pct[m] : 0;
+      });
+    });
+    const payload = {
+      pct,
+      internalHcOverrides
+    };
+    localStorage.setItem(WORKFORCE_INPUTS_STORAGE_KEY, JSON.stringify(payload));
+  } catch (_) {
+    // Ignore persistence errors (private mode / storage limits).
+  }
+}
+
+function applySavedWorkforceInputs() {
+  const saved = loadSavedWorkforceInputs();
+  Object.keys(internalHcOverrides).forEach(k => delete internalHcOverrides[k]);
+  if (!saved) return;
+
+  const pct = saved.pct || {};
+  workloadPctData.forEach(w => {
+    months.forEach(m => {
+      const k = w.vertical + '|||' + w.queue + '|||' + w.type + '|||' + m;
+      if (Object.prototype.hasOwnProperty.call(pct, k)) {
+        const v = Number(pct[k]);
+        if (Number.isFinite(v)) w.pct[m] = v;
+      }
+    });
+  });
+
+  const savedOverrides = saved.internalHcOverrides || {};
+  Object.keys(savedOverrides).forEach(k => {
+    const v = Number(savedOverrides[k]);
+    if (Number.isFinite(v)) internalHcOverrides[k] = v;
+  });
+}
 
 // ===== EXCEL PARSER =====
 function parseNum(v) {
@@ -618,6 +672,7 @@ function parseExcel(arrayBuffer) {
   }
 
   // ===== BUILD ALL ROWS =====
+  applySavedWorkforceInputs();
   buildRowsVerticalWorkforceAllocation();
 }
 // ===== CALCULATION ENGINE =====
@@ -836,6 +891,7 @@ function applyRiskOpsTargetsToRows() {
 
 // ===== BUILD INITIAL ROWS =====
 function buildAllRows() {
+  applySavedWorkforceInputs();
   buildRowsVerticalWorkforceAllocation();
 }
 buildAllRows();
@@ -1899,6 +1955,7 @@ function renderWorkforceInput() {
           internalHcOverrides[key] = nextHc;
           input.value = String(nextHc);
           r.pct[m] = calculateInternalPctFromHC(r.vertical, r.queue, m, nextHc);
+          saveWorkforceInputs();
           buildRowsVerticalWorkforceAllocation();
           render();
         });
@@ -1910,6 +1967,7 @@ function renderWorkforceInput() {
           const nextPct = parsePctInput(input.value);
           r.pct[m] = nextPct;
           input.value = String(Math.round(nextPct * 100));
+          saveWorkforceInputs();
           buildRowsVerticalWorkforceAllocation();
           allWfTypes = [...new Set(allRows.map(rr => rr.wfType))].sort(wfTypeCompare);
           selectedWfTypes = new Set([...selectedWfTypes].filter(t => allWfTypes.includes(t)));
@@ -1919,7 +1977,7 @@ function renderWorkforceInput() {
         });
         const sumKey = r.vertical + '|||' + r.queue + '|||' + m;
         const pctSum = queueMonthNonInternalPct[sumKey] || 0;
-        if (Math.abs(pctSum - 1) > 0.0001) {
+        if (Math.abs(pctSum - 1) > 0.0001 && Math.round(currentPct * 100) !== 0) {
           input.style.background = 'rgba(251,191,36,.35)';
           input.style.border = '1px solid var(--yellow)';
         }
