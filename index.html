@@ -2224,6 +2224,30 @@ function normalizeStaffQueueKey(vertical, queueOrSubVertical) {
 
   // Disputes naming mismatch: CurrentStaff uses "Appeal", workload uses "Appeals".
   if (vKey === 'disputes' && qKey === 'appeal') return 'appeals';
+  if (vKey === 'disputes' && qKey === 'appeals') return 'appeals';
+
+  // ATO naming mismatches between workload and current staff.
+  if (vKey === 'ato') {
+    if (qKey === 'atolocks' || qKey === 'locks') return 'locks';
+    if (qKey === 'atoacap' || qKey === 'acap') return 'acap';
+    if (qKey === 'atobrokeragelending' || qKey === 'brokeraglending' || qKey === 'brokeragelending') return 'brokeragelending';
+    if (qKey === 'selfreported' || qKey === 'selfreported') return 'selfreported';
+  }
+
+  // Foundations queues are sourced from BIT entries in Current Staff.
+  if (vKey === 'foundations' || vKey === 'bit') {
+    if (qKey === 'foundation' || qKey === 'foundations') return 'foundations';
+    if (qKey === 'intergrity' || qKey === 'integrity') return 'integrity';
+  }
+
+  // Scam naming mismatches.
+  if (vKey === 'scam') {
+    if (qKey === 'scamclaimshigh' || qKey === 'scamshigh') return 'scamshigh';
+    if (qKey === 'scamclaimsmid' || qKey === 'scamsmedium') return 'scamsmedium';
+    if (qKey === 'suspendedscams' || qKey === 'scamsuspension') return 'scamsuspension';
+    if (qKey === 'suspectedscams') return 'suspectedscams';
+    if (qKey === 'scamclaimslow') return 'scamclaimslow';
+  }
 
   return qKey;
 }
@@ -2231,11 +2255,16 @@ function normalizeStaffQueueKey(vertical, queueOrSubVertical) {
 function getCurrentStaffByGroup(vertical, queue, month, isInternal) {
   const vKey = normalizeStaffKey(vertical);
   const qKey = normalizeStaffQueueKey(vertical, queue);
+
+  // Cross-vertical mapping: Foundations workload queues resolve to BIT current-staff entries.
+  const candidateVerticals = (vKey === 'foundations') ? ['foundations', 'bit'] : [vKey];
+
   return currentStaffData
-    .filter(r =>
-      normalizeStaffKey(r.vertical) === vKey &&
-      normalizeStaffQueueKey(r.vertical, r.subVertical) === qKey
-    )
+    .filter(r => {
+      const rv = normalizeStaffKey(r.vertical);
+      const rq = normalizeStaffQueueKey(r.vertical, r.subVertical);
+      return candidateVerticals.includes(rv) && rq === qKey;
+    })
     .reduce((sum, r) => {
       const m = (r.staff && r.staff[month]) ? r.staff[month] : {internal:0, external:0};
       return sum + (isInternal ? (m.internal || 0) : (m.external || 0));
