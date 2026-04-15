@@ -767,6 +767,9 @@ function buildRowsVerticalWorkforceAllocation() {
         const wfType = 'Queue Total';
         const wlPct = 1;
         const prodHrs = q.totalWork;
+        const shrinkInternal = sd.shrinkInternal[month] || 0;
+        const intProdHrs = Math.max(0, queueCurrentInternal) * 8 * wdFte * (1 - shrinkInternal);
+        const extProdHrs = Math.max(0, prodHrs - intProdHrs);
         const shrinkRate = sd.shrinkExternal[month] || 0;
         const shrinkHrs = (shrinkRate === 1) ? 0 : (shrinkRate / (1 - shrinkRate)) * prodHrs;
         const totalHrs = prodHrs + shrinkHrs;
@@ -786,6 +789,8 @@ function buildRowsVerticalWorkforceAllocation() {
           wlPct,
           wfPctInput: wlPct,
           currentStaff,
+          intProdHrs,
+          extProdHrs,
           prodHrs,
           shrinkRate,
           shrinkHrs,
@@ -1055,6 +1060,8 @@ const columns = [
   {key:'aht',label:'AHT (s)',fmt:fmtInt,num:true},
   {key:'occ',label:'Occupancy',fmt:fmtPct,num:true},
   {key:'totalWork',label:'Total Work (hrs)',fmt:fmtDec1,num:true},
+  {key:'intProdHrs',label:'Int Prod Hrs',fmt:fmtDec1,num:true},
+  {key:'extProdHrs',label:'External Prod Hrs',fmt:fmtDec1,num:true},
   {key:'prodHrs',label:'Prod Hrs',fmt:fmtDec1,num:true},
   {key:'shrinkRate',label:'Shrink Rate',fmt:fmtPct,num:true},
   {key:'shrinkHrs',label:'Shrink Hrs',fmt:fmtDec1,num:true},
@@ -1170,7 +1177,7 @@ function renderDetail(filtered) {
   });
 
   if (rows.length > 0) {
-    const totals = {currentStaff:0,avgVol:0,monthlyVol:0,totalWork:0,prodHrs:0,shrinkHrs:0,totalHrs:0,fte:0};
+    const totals = {currentStaff:0,avgVol:0,monthlyVol:0,totalWork:0,intProdHrs:0,extProdHrs:0,prodHrs:0,shrinkHrs:0,totalHrs:0,fte:0};
     rows.forEach(r => { Object.keys(totals).forEach(k => totals[k] += r[k]); });
     const tr = document.createElement('tr');
     tr.className = 'totals-row';
