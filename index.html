@@ -1860,7 +1860,8 @@ function renderWorkforceInput() {
     tr.appendChild(tdQ);
 
     const tdT = document.createElement('td');
-    tdT.textContent = r.type;
+    const isInternal = r.type === 'Internal';
+    tdT.textContent = isInternal ? 'Internal (HC)' : r.type;
     tr.appendChild(tdT);
 
     activeMonths.forEach(m => {
@@ -1875,20 +1876,28 @@ function renderWorkforceInput() {
       input.style.background = 'transparent';
       input.style.color = 'var(--text)';
       input.style.textAlign = 'right';
-      const currentPct = Number.isFinite(r.pct[m]) ? r.pct[m] : 0;
-      input.value = (currentPct * 100).toFixed(2);
-      input.title = 'Enter percent (e.g., 25) or decimal (e.g., 0.25)';
-      input.addEventListener('change', () => {
-        const nextPct = parsePctInput(input.value);
-        r.pct[m] = nextPct;
-        input.value = (nextPct * 100).toFixed(2);
-        buildRowsVerticalWorkforceAllocation();
-        allWfTypes = [...new Set(allRows.map(rr => rr.wfType))].sort(wfTypeCompare);
-        selectedWfTypes = new Set([...selectedWfTypes].filter(t => allWfTypes.includes(t)));
-        if (selectedWfTypes.size === 0) selectedWfTypes = new Set(allWfTypes);
-        buildDropdown(document.getElementById('wfDd'), allWfTypes, selectedWfTypes, document.getElementById('wfBtn'), 'All Types', render);
-        render();
-      });
+      if (isInternal) {
+        const hc = getCurrentStaffInternalHC(r.vertical, r.queue, m);
+        input.value = fmtInt(hc);
+        input.readOnly = true;
+        input.style.fontWeight = '600';
+        input.title = 'Auto-populated from Current Staff (Internal HC)';
+      } else {
+        const currentPct = Number.isFinite(r.pct[m]) ? r.pct[m] : 0;
+        input.value = (currentPct * 100).toFixed(2);
+        input.title = 'Enter percent (e.g., 25) or decimal (e.g., 0.25)';
+        input.addEventListener('change', () => {
+          const nextPct = parsePctInput(input.value);
+          r.pct[m] = nextPct;
+          input.value = (nextPct * 100).toFixed(2);
+          buildRowsVerticalWorkforceAllocation();
+          allWfTypes = [...new Set(allRows.map(rr => rr.wfType))].sort(wfTypeCompare);
+          selectedWfTypes = new Set([...selectedWfTypes].filter(t => allWfTypes.includes(t)));
+          if (selectedWfTypes.size === 0) selectedWfTypes = new Set(allWfTypes);
+          buildDropdown(document.getElementById('wfDd'), allWfTypes, selectedWfTypes, document.getElementById('wfBtn'), 'All Types', render);
+          render();
+        });
+      }
       td.appendChild(input);
       tr.appendChild(td);
     });
@@ -2084,6 +2093,20 @@ function normalizeStaffQueueKey(vertical, queueOrSubVertical) {
   if (vKey === 'disputes' && qKey === 'appeal') return 'appeals';
 
   return qKey;
+}
+
+function getCurrentStaffInternalHC(vertical, queue, month) {
+  const vKey = normalizeStaffKey(vertical);
+  const qKey = normalizeStaffQueueKey(vertical, queue);
+  return currentStaffData
+    .filter(r =>
+      normalizeStaffKey(r.vertical) === vKey &&
+      normalizeStaffQueueKey(r.vertical, r.subVertical) === qKey
+    )
+    .reduce((sum, r) => {
+      const m = (r.staff && r.staff[month]) ? r.staff[month] : {internal:0};
+      return sum + (m.internal || 0);
+    }, 0);
 }
 
 function buildCalculatedStaffMap() {
