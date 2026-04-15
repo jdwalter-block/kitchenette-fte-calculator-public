@@ -1962,7 +1962,7 @@ function renderWorkforceInput() {
         input.step = '1';
         input.value = String(Math.round(hc));
         input.style.fontWeight = '600';
-        input.style.color = '#9ec5ff';
+        input.style.color = 'var(--yellow)';
         input.title = 'Editable Internal HC';
         input.addEventListener('change', () => {
           const nextHc = Math.max(0, Math.round(parseNum(input.value)));
@@ -1985,6 +1985,7 @@ function renderWorkforceInput() {
           saveWorkforceInputs();
           const msg = document.getElementById('workforceSaveMsg');
           if (msg) msg.textContent = 'Unsaved changes.';
+          render();
         });
         const sumKey = r.vertical + '|||' + r.queue + '|||' + m;
         const pctSum = queueMonthNonInternalPct[sumKey] || 0;
