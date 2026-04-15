@@ -1878,7 +1878,7 @@ function renderWorkforceInput() {
       const td = document.createElement('td');
       const input = document.createElement('input');
       input.type = 'number';
-      input.step = '0.01';
+      input.step = '1';
       input.style.width = '86px';
       input.style.padding = '4px 6px';
       input.style.border = '1px solid var(--border)';
@@ -1904,12 +1904,12 @@ function renderWorkforceInput() {
         });
       } else {
         const currentPct = Number.isFinite(r.pct[m]) ? r.pct[m] : 0;
-        input.value = (currentPct * 100).toFixed(2);
-        input.title = 'Enter percent (e.g., 25) or decimal (e.g., 0.25)';
+        input.value = String(Math.round(currentPct * 100));
+        input.title = 'Enter whole percent (e.g., 25)';
         input.addEventListener('change', () => {
           const nextPct = parsePctInput(input.value);
           r.pct[m] = nextPct;
-          input.value = (nextPct * 100).toFixed(2);
+          input.value = String(Math.round(nextPct * 100));
           buildRowsVerticalWorkforceAllocation();
           allWfTypes = [...new Set(allRows.map(rr => rr.wfType))].sort(wfTypeCompare);
           selectedWfTypes = new Set([...selectedWfTypes].filter(t => allWfTypes.includes(t)));
