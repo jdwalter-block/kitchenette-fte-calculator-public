@@ -348,6 +348,7 @@ let currentStaffData = [{"vertical":"Afterpay","subVertical":"AfterPay - Cards",
 
 let lastFile = null;
 let lastFileName = '';
+const internalHcOverrides = {};
 
 // ===== EXCEL PARSER =====
 function parseNum(v) {
@@ -1839,6 +1840,15 @@ function renderWorkforceInput() {
   container.innerHTML = html;
 
   const tbody = document.getElementById('workforceInputBody');
+  const queueMonthNonInternalPct = {};
+  rows.forEach(r => {
+    if (r.type === 'Internal') return;
+    activeMonths.forEach(m => {
+      const key = r.vertical + '|||' + r.queue + '|||' + m;
+      queueMonthNonInternalPct[key] = (queueMonthNonInternalPct[key] || 0) + (Number.isFinite(r.pct[m]) ? r.pct[m] : 0);
+    });
+  });
+
   let lastQueueKey = '';
   let queueBand = 0;
   rows.forEach(r => {
@@ -1878,10 +1888,20 @@ function renderWorkforceInput() {
       input.style.textAlign = 'right';
       if (isInternal) {
         const hc = getCurrentStaffInternalHC(r.vertical, r.queue, m);
-        input.value = fmtInt(hc);
-        input.readOnly = true;
+        input.step = '1';
+        input.value = String(Math.round(hc));
         input.style.fontWeight = '600';
-        input.title = 'Auto-populated from Current Staff (Internal HC)';
+        input.style.color = '#9ec5ff';
+        input.title = 'Editable Internal HC';
+        input.addEventListener('change', () => {
+          const nextHc = Math.max(0, Math.round(parseNum(input.value)));
+          const key = r.vertical + '|||' + r.queue + '|||' + m;
+          internalHcOverrides[key] = nextHc;
+          input.value = String(nextHc);
+          r.pct[m] = calculateInternalPctFromHC(r.vertical, r.queue, m, nextHc);
+          buildRowsVerticalWorkforceAllocation();
+          render();
+        });
       } else {
         const currentPct = Number.isFinite(r.pct[m]) ? r.pct[m] : 0;
         input.value = (currentPct * 100).toFixed(2);
@@ -1897,6 +1917,12 @@ function renderWorkforceInput() {
           buildDropdown(document.getElementById('wfDd'), allWfTypes, selectedWfTypes, document.getElementById('wfBtn'), 'All Types', render);
           render();
         });
+        const sumKey = r.vertical + '|||' + r.queue + '|||' + m;
+        const pctSum = queueMonthNonInternalPct[sumKey] || 0;
+        if (Math.abs(pctSum - 1) > 0.0001) {
+          input.style.background = 'rgba(251,191,36,.35)';
+          input.style.border = '1px solid var(--yellow)';
+        }
       }
       td.appendChild(input);
       tr.appendChild(td);
@@ -2096,6 +2122,10 @@ function normalizeStaffQueueKey(vertical, queueOrSubVertical) {
 }
 
 function getCurrentStaffInternalHC(vertical, queue, month) {
+  const overrideKey = vertical + '|||' + queue + '|||' + month;
+  if (Object.prototype.hasOwnProperty.call(internalHcOverrides, overrideKey)) {
+    return internalHcOverrides[overrideKey];
+  }
   const vKey = normalizeStaffKey(vertical);
   const qKey = normalizeStaffQueueKey(vertical, queue);
   return currentStaffData
@@ -2107,6 +2137,28 @@ function getCurrentStaffInternalHC(vertical, queue, month) {
       const m = (r.staff && r.staff[month]) ? r.staff[month] : {internal:0};
       return sum + (m.internal || 0);
     }, 0);
+}
+
+function calculateInternalPctFromHC(vertical, queue, month, internalHc) {
+  const wl = workloadData.find(w => w.vertical === vertical && w.queue === queue);
+  const sd = shrinkData[vertical];
+  if (!wl || !sd) return 0;
+
+  const wd = workingDays[month] || 0;
+  const wdFte = workingDaysFte[month] || wd;
+  const avgVol = wl.avgVolume[month] || 0;
+  const aht = wl.aht[month] || 0;
+  const occ = sd.occupancy[month] || 0;
+  const monthlyVol = avgVol * wd;
+  const baseTotalWork = (aht === 0 || avgVol === 0 || occ === 0) ? 0 : (monthlyVol * aht / 3600 / occ);
+  const overrideTotalWork = getQueueTotalWorkOverride(vertical, queue, month);
+  const totalWork = overrideTotalWork !== null ? overrideTotalWork : baseTotalWork;
+  if (totalWork <= 0 || wdFte <= 0) return 0;
+
+  const shrinkInternal = sd.shrinkInternal[month] || 0;
+  const totalHrsFromHc = Math.max(0, internalHc) * 8 * wdFte;
+  const prodHrsFromHc = totalHrsFromHc * (1 - shrinkInternal);
+  return prodHrsFromHc / totalWork;
 }
 
 function buildCalculatedStaffMap() {
