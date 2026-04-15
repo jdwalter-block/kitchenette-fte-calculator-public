@@ -318,7 +318,7 @@ Internal, Con - India, Con - Latam, Probe - India, ALMS - India, Sutherland - In
 const monthMap = {January:'Jan',February:'Feb',March:'Mar',April:'Apr',May:'May',June:'Jun',July:'Jul',August:'Aug',September:'Sep',October:'Oct',November:'Nov',December:'Dec'};
 const shortMonthMap = {Jan:'Jan',Feb:'Feb',Mar:'Mar',Apr:'Apr',May:'May',Jun:'Jun',Jul:'Jul',Aug:'Aug',Sep:'Sep',Oct:'Oct',Nov:'Nov',Dec:'Dec'};
 const displayYearShort = '26';
-const appBuild = '2026-04-15-queue-forecast-no-wf-allocation';
+const appBuild = '2026-04-15-net-staffing-queue-hc';
 
 function formatDisplayMonth(month) {
   if (!month) return '';
@@ -1984,14 +1984,15 @@ function normalizeStaffQueueKey(vertical, queueOrSubVertical) {
 function buildCalculatedStaffMap() {
   const map = {};
   allRows.forEach(r => {
-    // Workforce split forecast is intentionally deferred.
-    if (r.wfType === 'Queue Total') return;
     const vKey = normalizeStaffKey(r.vertical);
     const qKey = normalizeStaffQueueKey(r.vertical, r.queue);
     const key = vKey + '|||' + qKey;
     if (!map[key]) map[key] = {};
     if (!map[key][r.month]) map[key][r.month] = {internal:0, external:0};
-    if (r.wfType === 'Internal') map[key][r.month].internal += (r.fte || 0);
+    // Workforce split forecast is deferred. Apply queue-level HC to external
+    // so Net Staffing still updates against calculated queue forecast totals.
+    if (r.wfType === 'Queue Total') map[key][r.month].external += (r.fte || 0);
+    else if (r.wfType === 'Internal') map[key][r.month].internal += (r.fte || 0);
     else map[key][r.month].external += (r.fte || 0);
   });
   return map;
