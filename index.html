@@ -1955,6 +1955,7 @@ function renderWorkforceInput() {
     const isInternal = r.type === 'Internal';
     tdT.textContent = isInternal ? 'Internal (HC)' : r.type;
     tr.appendChild(tdT);
+    if (isInternal) tr.style.color = 'var(--yellow)';
 
     activeMonths.forEach(m => {
       const td = document.createElement('td');
