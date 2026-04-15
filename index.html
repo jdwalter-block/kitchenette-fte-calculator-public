@@ -693,23 +693,33 @@ function calculate(vertical, queue, wfType, month) {
   if (!wl) return null;
   const sd = shrinkData[vertical];
   if (!sd) return null;
-  const wp = workloadPctData.find(w => w.vertical === vertical && w.queue === queue && w.type === wfType);
-  if (!wp) return null;
-
   const avgVol = wl.avgVolume[month] || 0;
   const aht = wl.aht[month] || 0;
   const wd = workingDays[month];
   const wdFte = workingDaysFte[month] || wd;
   const occ = sd.occupancy[month];
-  const wlPct = wp.pct[month] || 0;
-  const isInternal = wfType === "Internal";
-  const shrinkRate = isInternal ? sd.shrinkInternal[month] : sd.shrinkExternal[month];
+  const allocations = workloadPctData.filter(w => w.vertical === vertical && w.queue === queue);
 
   const monthlyVol = avgVol * wd;
   const baseTotalWork = (aht === 0 || avgVol === 0 || occ === 0) ? 0 : (monthlyVol * aht / 3600 / occ);
   const overrideTotalWork = getQueueTotalWorkOverride(vertical, queue, month);
   const totalWork = overrideTotalWork !== null ? overrideTotalWork : baseTotalWork;
-  const prodHrs = wlPct * totalWork;
+  let shrinkFactor = 0;
+  const weights = allocations.map(a => {
+    const w = Math.max(0, (a.pct && Number.isFinite(a.pct[month])) ? a.pct[month] : 0);
+    const sr = a.type === 'Internal' ? (sd.shrinkInternal[month] || 0) : (sd.shrinkExternal[month] || 0);
+    return {w, sr};
+  });
+  const wSum = weights.reduce((s, x) => s + x.w, 0);
+  if (wSum > 0) {
+    shrinkFactor = weights.reduce((s, x) => s + (x.w / wSum) * ((x.sr === 1) ? 0 : (x.sr / (1 - x.sr))), 0);
+  } else {
+    const sr = sd.shrinkExternal[month] || 0;
+    shrinkFactor = (sr === 1) ? 0 : (sr / (1 - sr));
+  }
+  const wlPct = 1;
+  const shrinkRate = shrinkFactor / (1 + shrinkFactor);
+  const prodHrs = totalWork;
   const shrinkHrs = (shrinkRate === 1) ? 0 : (shrinkRate / (1 - shrinkRate)) * prodHrs;
   const totalHrs = prodHrs + shrinkHrs;
   const fte = (wdFte === 0) ? 0 : totalHrs / 8 / wdFte;
@@ -764,47 +774,54 @@ function buildRowsVerticalWorkforceAllocation() {
       queueStats.forEach(q => {
         const allocations = workloadPctData.filter(w => w.vertical === vertical && w.queue === q.queue);
         const allocationRows = allocations.length ? allocations : [{type:'Queue Total', pct:{[month]:1}}];
-        const extPctSum = allocationRows
-          .filter(a => a.type !== 'Internal')
-          .reduce((s, a) => s + ((a.pct && Number.isFinite(a.pct[month])) ? a.pct[month] : 0), 0);
         const queueCurrentInternal = getCurrentStaffByGroup(vertical, q.queue, month, true);
         const queueCurrentExternal = getCurrentStaffByGroup(vertical, q.queue, month, false);
 
-        allocationRows.forEach(a => {
-          const wfType = a.type;
-          const wlPct = (a.pct && Number.isFinite(a.pct[month])) ? a.pct[month] : 0;
-          const shrinkRate = (wfType === 'Internal') ? (sd.shrinkInternal[month] || 0) : (sd.shrinkExternal[month] || 0);
-          const prodHrs = q.totalWork * wlPct;
-          const shrinkHrs = (shrinkRate === 1) ? 0 : (shrinkRate / (1 - shrinkRate)) * prodHrs;
-          const totalHrs = prodHrs + shrinkHrs;
-          const fte = (wdFte === 0) ? 0 : totalHrs / 8 / wdFte;
-          const currentStaff = (wfType === 'Internal')
-            ? queueCurrentInternal
-            : (extPctSum > 0 ? queueCurrentExternal * (wlPct / extPctSum) : 0);
+        const weighted = allocationRows.map(a => {
+          const w = Math.max(0, (a.pct && Number.isFinite(a.pct[month])) ? a.pct[month] : 0);
+          const sr = a.type === 'Internal' ? (sd.shrinkInternal[month] || 0) : (sd.shrinkExternal[month] || 0);
+          return {w, sr};
+        });
+        const wSum = weighted.reduce((s, x) => s + x.w, 0);
+        let shrinkFactor = 0;
+        if (wSum > 0) {
+          shrinkFactor = weighted.reduce((s, x) => s + (x.w / wSum) * ((x.sr === 1) ? 0 : (x.sr / (1 - x.sr))), 0);
+        } else {
+          const sr = sd.shrinkExternal[month] || 0;
+          shrinkFactor = (sr === 1) ? 0 : (sr / (1 - sr));
+        }
 
-          allRows.push({
-            avgVol: q.avgVol,
-            wd,
-            wdFte,
-            monthlyVol: q.monthlyVol,
-            aht: q.aht,
-            occ: q.occ,
-            totalWork: q.totalWork,
-            verticalMonthlyVol,
-            verticalTotalWork,
-            wlPct,
-            wfPctInput: wlPct,
-            currentStaff,
-            prodHrs,
-            shrinkRate,
-            shrinkHrs,
-            totalHrs,
-            fte,
-            vertical,
-            queue: q.queue,
-            wfType,
-            month
-          });
+        const wfType = 'Queue Total';
+        const wlPct = 1;
+        const prodHrs = q.totalWork;
+        const shrinkHrs = prodHrs * shrinkFactor;
+        const totalHrs = prodHrs + shrinkHrs;
+        const fte = (wdFte === 0) ? 0 : totalHrs / 8 / wdFte;
+        const shrinkRate = shrinkFactor / (1 + shrinkFactor);
+        const currentStaff = queueCurrentInternal + queueCurrentExternal;
+
+        allRows.push({
+          avgVol: q.avgVol,
+          wd,
+          wdFte,
+          monthlyVol: q.monthlyVol,
+          aht: q.aht,
+          occ: q.occ,
+          totalWork: q.totalWork,
+          verticalMonthlyVol,
+          verticalTotalWork,
+          wlPct,
+          wfPctInput: wlPct,
+          currentStaff,
+          prodHrs,
+          shrinkRate,
+          shrinkHrs,
+          totalHrs,
+          fte,
+          vertical,
+          queue: q.queue,
+          wfType,
+          month
         });
       });
     });
@@ -908,7 +925,13 @@ buildAllRows();
 
 // ===== FILTER STATE =====
 let allVerticals = [...new Set(workloadData.map(w=>w.vertical))].sort();
-let allWfTypes = [...new Set(allRows.map(r=>r.wfType))].sort(wfTypeCompare);
+function getAllWorkforceTypesForFilters() {
+  return [...new Set([
+    ...allRows.map(r => r.wfType),
+    ...workloadPctData.map(w => w.type)
+  ])].sort(wfTypeCompare);
+}
+let allWfTypes = getAllWorkforceTypesForFilters();
 let allQueues = [...new Set(workloadData.map(w=>w.queue))].sort();
 
 let selectedVerticals = new Set(allVerticals);
@@ -1869,8 +1892,8 @@ function renderFormulas() {
     '<div class="table-wrap"><table><thead><tr><th>Component</th><th>Formula</th><th>Notes</th></tr></thead><tbody>' +
     '<tr><td>Monthly Volume</td><td><code>Monthly Volume = Avg Volume × Working Days</code></td><td>Uses <code>Working Days</code>, not HC days.</td></tr>' +
     '<tr><td>Total Work (hrs)</td><td><code>Total Work = (Monthly Volume × AHT / 3600) / Occupancy</code></td><td>If AHT, Avg Volume, or Occupancy is 0, Total Work = 0.</td></tr>' +
-    '<tr><td>Queue Prod Hrs (by Workforce Type)</td><td><code>Queue Prod Hrs = Queue Total Work × Workforce %</code></td><td>Workforce % comes from the editable <code>Workforce % Input</code> tab.</td></tr>' +
-    '<tr><td>Shrink Hrs</td><td><code>Shrink Hrs = (Shrink Rate / (1 - Shrink Rate)) × Queue Prod Hrs</code></td><td><code>Internal</code> uses <code>Shrink - Internal</code>; all other workforce types use <code>Shrink - External</code>.</td></tr>' +
+    '<tr><td>Queue Prod Hrs</td><td><code>Queue Prod Hrs = Queue Total Work</code></td><td>Applied once per queue/month (no workforce-row application).</td></tr>' +
+    '<tr><td>Shrink Hrs</td><td><code>Shrink Hrs = Queue Prod Hrs × Blended Shrink Factor</code></td><td>Blended factor is weighted by Workforce % mix (Internal uses Internal shrink; non-internal uses External shrink).</td></tr>' +
     '<tr><td>Total Hrs</td><td><code>Total Hrs = Prod Hrs + Shrink Hrs</code></td><td>Queue and aggregate totals roll up from this.</td></tr>' +
     '<tr><td>Headcount (HC)</td><td><code>HC = Total Hrs / 8 / Working Days HC</code></td><td>Uses <code>Working Days HC</code>.</td></tr>' +
     '<tr><td>Vertical Total HC</td><td><code>Vertical Total HC = SUM(Queue HC in vertical)</code></td><td>Vertical totals are direct queue sums.</td></tr>' +
@@ -1917,7 +1940,7 @@ function renderWorkforceInput() {
   }
   function applyWorkforceToDetail(statusText) {
     buildRowsVerticalWorkforceAllocation();
-    allWfTypes = [...new Set(allRows.map(rr => rr.wfType))].sort(wfTypeCompare);
+    allWfTypes = getAllWorkforceTypesForFilters();
     selectedWfTypes = new Set([...selectedWfTypes].filter(t => allWfTypes.includes(t)));
     if (selectedWfTypes.size === 0) selectedWfTypes = new Set(allWfTypes);
     buildDropdown(document.getElementById('wfDd'), allWfTypes, selectedWfTypes, document.getElementById('wfBtn'), 'All Types', render);
@@ -2496,7 +2519,7 @@ function renderVersionHistory() {
 
 // ===== MODAL =====
 function showModal(r) {
-  const shrinkLabel = r.wfType === 'Internal' ? 'Shrink Rate (Internal)' : 'Shrink Rate (External)';
+  const shrinkLabel = r.wfType === 'Queue Total' ? 'Shrink Rate (Blended by Workforce%)' : (r.wfType === 'Internal' ? 'Shrink Rate (Internal)' : 'Shrink Rate (External)');
   const mc = document.getElementById('modalContainer');
   mc.innerHTML = '<div class="modal-overlay" id="modalOverlay"><div class="modal-wrapper"><div class="modal">' +
     '<h3>' + escHtml(r.vertical) + ' — ' + escHtml(r.queue) + '</h3>' +
@@ -2509,7 +2532,7 @@ function showModal(r) {
     '<div class="calc-step"><span class="label">Occupancy</span><span class="value">' + fmtPct(r.occ) + '</span></div>' +
     '<div class="calc-step"><span class="label">Total Work = ' + fmtInt(r.monthlyVol) + ' × ' + fmtInt(r.aht) + ' / 3600 / ' + r.occ + '</span><span class="value">' + fmtDec1(r.totalWork) + ' hrs</span></div>' +
     '<div class="calc-step"><span class="label">Workload %</span><span class="value">' + fmtPct(r.wlPct) + '</span></div>' +
-    '<div class="calc-step"><span class="label">Prod Hrs = ' + fmtDec1(r.totalWork) + ' × ' + fmtPct(r.wlPct) + '</span><span class="value">' + fmtDec1(r.prodHrs) + ' hrs</span></div>' +
+    '<div class="calc-step"><span class="label">Prod Hrs = Queue Total Work</span><span class="value">' + fmtDec1(r.prodHrs) + ' hrs</span></div>' +
     '<div class="calc-step"><span class="label">' + shrinkLabel + '</span><span class="value">' + fmtPct(r.shrinkRate) + '</span></div>' +
     '<div class="calc-step"><span class="label">Shrink Hrs = (' + r.shrinkRate + ' / ' + fmtDec2(1-r.shrinkRate) + ') × ' + fmtDec1(r.prodHrs) + '</span><span class="value">' + fmtDec1(r.shrinkHrs) + ' hrs</span></div>' +
     '<div class="calc-step"><span class="label">Total Hrs = ' + fmtDec1(r.prodHrs) + ' + ' + fmtDec1(r.shrinkHrs) + '</span><span class="value">' + fmtDec1(r.totalHrs) + ' hrs</span></div>' +
@@ -2638,7 +2661,7 @@ if (exportVarianceBtn) {
 // ===== FILE LOADING =====
 function rebuildFromData() {
   allVerticals = [...new Set(workloadData.map(w => w.vertical))].sort();
-  allWfTypes = [...new Set(allRows.map(r => r.wfType))].sort(wfTypeCompare);
+  allWfTypes = getAllWorkforceTypesForFilters();
   allQueues = [...new Set(workloadData.map(w => w.queue))].sort();
 
   selectedVerticals = new Set(allVerticals);
