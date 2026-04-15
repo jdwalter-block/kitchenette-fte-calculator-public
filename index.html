@@ -1903,7 +1903,7 @@ function renderWorkforceInput() {
   let html = '<div class="pivot-title">Workforce % Input by Queue and Workforce Type</div>';
   html += '<div style="margin:10px 24px 0;display:flex;align-items:center;gap:10px">';
   html += '<button class="btn btn-accent" id="saveWorkforceBtn">Save To Detail Table</button>';
-  html += '<span id="workforceSaveMsg" style="font-size:11px;color:var(--text2)">Changes remain local until saved.</span>';
+  html += '<span id="workforceSaveMsg" style="font-size:11px;color:var(--text2)">Detail updates immediately. Click Save to keep for future use.</span>';
   html += '</div>';
   html += '<div class="pivot-table"><table><thead><tr><th>Vertical</th><th>Queue</th><th>Workforce Type</th>';
   activeMonths.forEach(m => html += '<th>' + formatDisplayMonth(m) + '</th>');
@@ -1911,6 +1911,17 @@ function renderWorkforceInput() {
   container.innerHTML = html;
 
   const tbody = document.getElementById('workforceInputBody');
+  function applyWorkforceToDetail(statusText) {
+    buildRowsVerticalWorkforceAllocation();
+    allWfTypes = [...new Set(allRows.map(rr => rr.wfType))].sort(wfTypeCompare);
+    selectedWfTypes = new Set([...selectedWfTypes].filter(t => allWfTypes.includes(t)));
+    if (selectedWfTypes.size === 0) selectedWfTypes = new Set(allWfTypes);
+    buildDropdown(document.getElementById('wfDd'), allWfTypes, selectedWfTypes, document.getElementById('wfBtn'), 'All Types', render);
+    const msg = document.getElementById('workforceSaveMsg');
+    if (msg && statusText) msg.textContent = statusText;
+    render();
+  }
+
   const queueMonthNonInternalPct = {};
   rows.forEach(r => {
     if (r.type === 'Internal') return;
@@ -1970,9 +1981,7 @@ function renderWorkforceInput() {
           internalHcOverrides[key] = nextHc;
           input.value = String(nextHc);
           r.pct[m] = calculateInternalPctFromHC(r.vertical, r.queue, m, nextHc);
-          saveWorkforceInputs();
-          const msg = document.getElementById('workforceSaveMsg');
-          if (msg) msg.textContent = 'Unsaved changes.';
+          applyWorkforceToDetail('Detail table updated. Click Save to keep for future use.');
         });
       } else {
         const currentPct = Number.isFinite(r.pct[m]) ? r.pct[m] : 0;
@@ -1982,10 +1991,7 @@ function renderWorkforceInput() {
           const nextPct = parsePctInput(input.value);
           r.pct[m] = nextPct;
           input.value = String(Math.round(nextPct * 100));
-          saveWorkforceInputs();
-          const msg = document.getElementById('workforceSaveMsg');
-          if (msg) msg.textContent = 'Unsaved changes.';
-          render();
+          applyWorkforceToDetail('Detail table updated. Click Save to keep for future use.');
         });
         const sumKey = r.vertical + '|||' + r.queue + '|||' + m;
         const pctSum = queueMonthNonInternalPct[sumKey] || 0;
@@ -2005,13 +2011,7 @@ function renderWorkforceInput() {
   if (saveBtn) {
     saveBtn.addEventListener('click', () => {
       saveWorkforceInputs();
-      buildRowsVerticalWorkforceAllocation();
-      allWfTypes = [...new Set(allRows.map(rr => rr.wfType))].sort(wfTypeCompare);
-      selectedWfTypes = new Set([...selectedWfTypes].filter(t => allWfTypes.includes(t)));
-      if (selectedWfTypes.size === 0) selectedWfTypes = new Set(allWfTypes);
-      buildDropdown(document.getElementById('wfDd'), allWfTypes, selectedWfTypes, document.getElementById('wfBtn'), 'All Types', render);
-      if (saveMsg) saveMsg.textContent = 'Saved to Detail Table.';
-      render();
+      applyWorkforceToDetail('Saved for future use and applied to Detail Table.');
     });
   }
 }
