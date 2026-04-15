@@ -934,6 +934,7 @@ let currentStaffExpandedVerticals = new Set();
 let currentStaffExpandedSubs = new Set();
 let netStaffExpandedVerticals = new Set();
 let netStaffExpandedSubs = new Set();
+let workforcePendingFocusNav = null;
 
 // ===== FORMAT HELPERS =====
 const fmtInt = n => n === 0 ? '0' : n.toLocaleString('en-US', {maximumFractionDigits:0});
@@ -1911,6 +1912,9 @@ function renderWorkforceInput() {
   container.innerHTML = html;
 
   const tbody = document.getElementById('workforceInputBody');
+  function getInputByNav(nav) {
+    return tbody.querySelector('input[data-nav="' + String(nav) + '"]');
+  }
   function applyWorkforceToDetail(statusText) {
     buildRowsVerticalWorkforceAllocation();
     allWfTypes = [...new Set(allRows.map(rr => rr.wfType))].sort(wfTypeCompare);
@@ -1933,6 +1937,7 @@ function renderWorkforceInput() {
 
   let lastQueueKey = '';
   let queueBand = 0;
+  let navCounter = 0;
   rows.forEach(r => {
     const queueKey = r.vertical + '|||' + r.queue;
     if (queueKey !== lastQueueKey) {
@@ -1960,6 +1965,8 @@ function renderWorkforceInput() {
     activeMonths.forEach(m => {
       const td = document.createElement('td');
       const input = document.createElement('input');
+      const nav = navCounter++;
+      input.dataset.nav = String(nav);
       input.type = 'number';
       input.step = '1';
       input.style.width = '86px';
@@ -1969,6 +1976,12 @@ function renderWorkforceInput() {
       input.style.background = 'transparent';
       input.style.color = 'var(--text)';
       input.style.textAlign = 'right';
+      input.addEventListener('keydown', (e) => {
+        if (e.key !== 'Tab') return;
+        const dir = e.shiftKey ? -1 : 1;
+        const nextNav = nav + dir;
+        workforcePendingFocusNav = nextNav;
+      });
       if (isInternal) {
         const hc = getCurrentStaffInternalHC(r.vertical, r.queue, m);
         input.step = '1';
@@ -2014,6 +2027,18 @@ function renderWorkforceInput() {
       saveWorkforceInputs();
       applyWorkforceToDetail('Saved for future use and applied to Detail Table.');
     });
+  }
+
+  if (workforcePendingFocusNav !== null) {
+    const nextNav = workforcePendingFocusNav;
+    workforcePendingFocusNav = null;
+    setTimeout(() => {
+      const input = getInputByNav(nextNav);
+      if (input) {
+        input.focus();
+        input.select();
+      }
+    }, 0);
   }
 }
 
