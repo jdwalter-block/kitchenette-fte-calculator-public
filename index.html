@@ -2066,22 +2066,23 @@ function renderCurrentStaff() {
   activeMonths.forEach(m => grandTotal[m] = 0);
 
   rows.forEach(r => {
-    if (!tree[r.vertical]) tree[r.vertical] = {};
-    if (!tree[r.vertical][r.subVertical]) {
-      tree[r.vertical][r.subVertical] = {
+    const vDisplay = displayStaffVerticalName(r.vertical);
+    if (!tree[vDisplay]) tree[vDisplay] = {};
+    if (!tree[vDisplay][r.subVertical]) {
+      tree[vDisplay][r.subVertical] = {
         Internal: {},
         External: {}
       };
       activeMonths.forEach(m => {
-        tree[r.vertical][r.subVertical].Internal[m] = 0;
-        tree[r.vertical][r.subVertical].External[m] = 0;
+        tree[vDisplay][r.subVertical].Internal[m] = 0;
+        tree[vDisplay][r.subVertical].External[m] = 0;
       });
     }
 
     activeMonths.forEach(m => {
       const monthVals = (r.staff && r.staff[m]) ? r.staff[m] : {internal:0, external:0};
-      tree[r.vertical][r.subVertical].Internal[m] += monthVals.internal || 0;
-      tree[r.vertical][r.subVertical].External[m] += monthVals.external || 0;
+      tree[vDisplay][r.subVertical].Internal[m] += monthVals.internal || 0;
+      tree[vDisplay][r.subVertical].External[m] += monthVals.external || 0;
     });
   });
 
@@ -2288,6 +2289,10 @@ function getCurrentStaffInternalHC(vertical, queue, month) {
   return getCurrentStaffByGroup(vertical, queue, month, true);
 }
 
+function displayStaffVerticalName(vertical) {
+  return vertical === 'BIT' ? 'Foundation' : vertical;
+}
+
 function calculateInternalPctFromHC(vertical, queue, month, internalHc) {
   const wl = workloadData.find(w => w.vertical === vertical && w.queue === queue);
   const sd = shrinkData[vertical];
@@ -2342,12 +2347,13 @@ function renderNetStaffing() {
   activeMonths.forEach(m => grandTotal[m] = 0);
 
   rows.forEach(r => {
-    if (!tree[r.vertical]) tree[r.vertical] = {};
-    if (!tree[r.vertical][r.subVertical]) {
-      tree[r.vertical][r.subVertical] = { Internal: {}, External: {} };
+    const vDisplay = displayStaffVerticalName(r.vertical);
+    if (!tree[vDisplay]) tree[vDisplay] = {};
+    if (!tree[vDisplay][r.subVertical]) {
+      tree[vDisplay][r.subVertical] = { Internal: {}, External: {} };
       activeMonths.forEach(m => {
-        tree[r.vertical][r.subVertical].Internal[m] = 0;
-        tree[r.vertical][r.subVertical].External[m] = 0;
+        tree[vDisplay][r.subVertical].Internal[m] = 0;
+        tree[vDisplay][r.subVertical].External[m] = 0;
       });
     }
 
@@ -2355,8 +2361,8 @@ function renderNetStaffing() {
     activeMonths.forEach(m => {
       const cur = (r.staff && r.staff[m]) ? r.staff[m] : {internal:0, external:0};
       const calc = (calcMap[key] && calcMap[key][m]) ? calcMap[key][m] : {internal:0, external:0};
-      tree[r.vertical][r.subVertical].Internal[m] += (cur.internal || 0) - (calc.internal || 0);
-      tree[r.vertical][r.subVertical].External[m] += (cur.external || 0) - (calc.external || 0);
+      tree[vDisplay][r.subVertical].Internal[m] += (cur.internal || 0) - (calc.internal || 0);
+      tree[vDisplay][r.subVertical].External[m] += (cur.external || 0) - (calc.external || 0);
     });
   });
 
