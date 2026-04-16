@@ -262,6 +262,7 @@ Internal, Con - India, Con - Latam, Probe - India, ALMS - India, Sutherland - In
     <span class="row-count" id="rowCount">Showing 0 of 0 rows</span>
     <span class="row-count" id="fileStatus" style="color:var(--text3)">No file loaded</span>
     <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none">
+    <button class="btn" id="toggleHiddenTabsBtn">Show Hidden Tabs</button>
     <button class="btn btn-accent" id="exportBtn">⬇ Export CSV</button>
   </div>
 </div>
@@ -289,15 +290,15 @@ Internal, Con - India, Con - Latam, Probe - India, ALMS - India, Sutherland - In
 </div>
 <div class="tabs">
   <div class="tab active" data-tab="pivotVertical">Headcount (HC) by Vertical</div>
-  <div class="tab" data-tab="pivotVerticalIntExt">Headcount (HC) by Vertical (Int/Ext)</div>
+  <div class="tab" data-tab="pivotVerticalIntExt" id="tab-pivotVerticalIntExt">Headcount (HC) by Vertical (Int/Ext)</div>
   <div class="tab" data-tab="pivotWf">Headcount (HC) by Workforce</div>
-  <div class="tab" data-tab="hrsByWf">Hours by Workforce</div>
+  <div class="tab" data-tab="hrsByWf" id="tab-hrsByWf">Hours by Workforce</div>
   <div class="tab" data-tab="assumptions">Assumptions</div>
   <div class="tab" data-tab="currentStaff">Current Staff</div>
   <div class="tab" data-tab="netStaffing">Net Staffing</div>
   <div class="tab" data-tab="formulas">Formulas</div>
-  <div class="tab" data-tab="versionHistory">Version History</div>
-  <div class="tab" data-tab="workforceInput">Workforce % Input</div>
+  <div class="tab" data-tab="versionHistory" id="tab-versionHistory">Version History</div>
+  <div class="tab" data-tab="workforceInput" id="tab-workforceInput">Workforce % Input</div>
   <div class="tab" data-tab="detail">Detail Table</div>
 </div>
 <div class="content" id="content">
@@ -921,6 +922,8 @@ let selectedQueues = new Set(allQueues);
 let selectedWfTypes = new Set(allWfTypes);
 let selectedMonths = new Set(months);
 let activeTab = 'pivotVertical';
+const hiddenTabKeys = ['pivotVerticalIntExt', 'hrsByWf', 'versionHistory', 'workforceInput'];
+let hiddenTabsVisible = false;
 let sortCol = -1;
 let sortDir = 1;
 
@@ -1052,6 +1055,28 @@ document.querySelectorAll('.tab').forEach(tab => {
     render();
   });
 });
+
+function setActiveTabUi(tabKey) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  const activeEl = document.querySelector('.tab[data-tab="' + tabKey + '"]');
+  if (activeEl) activeEl.classList.add('active');
+}
+
+function updateHiddenTabsVisibility() {
+  hiddenTabKeys.forEach(tabKey => {
+    const tabEl = document.querySelector('.tab[data-tab="' + tabKey + '"]');
+    if (tabEl) tabEl.style.display = hiddenTabsVisible ? '' : 'none';
+  });
+
+  if (!hiddenTabsVisible && hiddenTabKeys.includes(activeTab)) {
+    activeTab = 'pivotVertical';
+    setActiveTabUi(activeTab);
+    render();
+  }
+
+  const btn = document.getElementById('toggleHiddenTabsBtn');
+  if (btn) btn.textContent = hiddenTabsVisible ? 'Hide Hidden Tabs' : 'Show Hidden Tabs';
+}
 
 // ===== COLUMNS =====
 const columns = [
@@ -2963,6 +2988,16 @@ if (refreshBtn && fileInput) {
 // ===== INIT =====
 document.getElementById('fileStatus').textContent = '✓ Kitchenette_20260414.xlsx (built-in)';
 document.getElementById('fileStatus').style.color = 'var(--green)';
+
+const toggleHiddenTabsBtn = document.getElementById('toggleHiddenTabsBtn');
+if (toggleHiddenTabsBtn) {
+  toggleHiddenTabsBtn.addEventListener('click', () => {
+    hiddenTabsVisible = !hiddenTabsVisible;
+    updateHiddenTabsVisibility();
+  });
+}
+
+updateHiddenTabsVisibility();
 initFilters();
 render();
 </script>
