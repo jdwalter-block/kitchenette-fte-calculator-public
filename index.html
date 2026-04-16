@@ -716,10 +716,9 @@ function calculate(vertical, queue, wfType, month) {
 
 // ===== QUEUE-LEVEL FORECAST =====
 // Queue-level forecast only:
-// - prodHrs uses queue totalWork directly
+// - queue totalWork is allocated to workforce rows by Workforce % Input
 // - shrinkRate always uses external billable shrink
 // - vertical totals are sums of queue rows
-// Workforce-type allocation is intentionally not applied yet.
 function buildRowsVerticalWorkforceAllocation() {
   allRows = [];
 
@@ -764,42 +763,45 @@ function buildRowsVerticalWorkforceAllocation() {
         const queueCurrentInternal = getCurrentStaffByGroup(vertical, q.queue, month, true);
         const queueCurrentExternal = getCurrentStaffByGroup(vertical, q.queue, month, false);
 
-        const wfType = 'Queue Total';
-        const wlPct = 1;
-        const prodHrs = q.totalWork;
-        const shrinkInternal = sd.shrinkInternal[month] || 0;
-        const intProdHrs = Math.max(0, queueCurrentInternal) * 8 * wdFte * (1 - shrinkInternal);
-        const extProdHrs = Math.max(0, prodHrs - intProdHrs);
-        const shrinkRate = sd.shrinkExternal[month] || 0;
-        const shrinkHrs = (shrinkRate === 1) ? 0 : (shrinkRate / (1 - shrinkRate)) * prodHrs;
-        const totalHrs = prodHrs + shrinkHrs;
-        const fte = (wdFte === 0) ? 0 : totalHrs / 8 / wdFte;
-        const currentStaff = queueCurrentInternal + queueCurrentExternal;
+        allocationRows.forEach(a => {
+          const wfType = a.type || 'Queue Total';
+          const wlPctRaw = Number.isFinite(a.pct?.[month]) ? a.pct[month] : 0;
+          const wlPct = Math.max(0, wlPctRaw);
+          const prodHrs = q.totalWork * wlPct;
+          const shrinkInternal = sd.shrinkInternal[month] || 0;
+          const intProdHrs = Math.max(0, queueCurrentInternal) * 8 * wdFte * (1 - shrinkInternal);
+          const extProdHrs = Math.max(0, prodHrs - intProdHrs);
+          const shrinkRate = sd.shrinkExternal[month] || 0;
+          const shrinkHrs = (shrinkRate === 1) ? 0 : (shrinkRate / (1 - shrinkRate)) * prodHrs;
+          const totalHrs = prodHrs + shrinkHrs;
+          const fte = (wdFte === 0) ? 0 : totalHrs / 8 / wdFte;
+          const currentStaff = (wfType === 'Internal') ? queueCurrentInternal : queueCurrentExternal;
 
-        allRows.push({
-          avgVol: q.avgVol,
-          wd,
-          wdFte,
-          monthlyVol: q.monthlyVol,
-          aht: q.aht,
-          occ: q.occ,
-          totalWork: q.totalWork,
-          verticalMonthlyVol,
-          verticalTotalWork,
-          wlPct,
-          wfPctInput: wlPct,
-          currentStaff,
-          intProdHrs,
-          extProdHrs,
-          prodHrs,
-          shrinkRate,
-          shrinkHrs,
-          totalHrs,
-          fte,
-          vertical,
-          queue: q.queue,
-          wfType,
-          month
+          allRows.push({
+            avgVol: q.avgVol,
+            wd,
+            wdFte,
+            monthlyVol: q.monthlyVol,
+            aht: q.aht,
+            occ: q.occ,
+            totalWork: q.totalWork,
+            verticalMonthlyVol,
+            verticalTotalWork,
+            wlPct,
+            wfPctInput: wlPct,
+            currentStaff,
+            intProdHrs,
+            extProdHrs,
+            prodHrs,
+            shrinkRate,
+            shrinkHrs,
+            totalHrs,
+            fte,
+            vertical,
+            queue: q.queue,
+            wfType,
+            month
+          });
         });
       });
     });
