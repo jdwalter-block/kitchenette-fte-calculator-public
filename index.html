@@ -295,6 +295,7 @@ Internal, Con - India, Con - Latam, Probe - India, ALMS - India, Sutherland - In
   <div class="tab" data-tab="workforceInput">Workforce % Input</div>
   <div class="tab" data-tab="currentStaff">Current Staff</div>
   <div class="tab" data-tab="netStaffing">Net Staffing</div>
+  <div class="tab" data-tab="assumptions">Assumptions</div>
   <div class="tab" data-tab="formulas">Formulas</div>
   <div class="tab" data-tab="versionHistory">Version History</div>
   <div class="tab" data-tab="detail">Detail Table</div>
@@ -313,6 +314,7 @@ Internal, Con - India, Con - Latam, Probe - India, ALMS - India, Sutherland - In
   <div id="workforceInputSection" class="section-hidden"></div>
   <div id="currentStaffSection" class="section-hidden"></div>
   <div id="netStaffingSection" class="section-hidden"></div>
+  <div id="assumptionsSection" class="section-hidden"></div>
   <div id="formulasSection" class="section-hidden"></div>
   <div id="versionHistorySection" class="section-hidden"></div>
 </div>
@@ -1090,6 +1092,15 @@ function render() {
   if (activeTab === 'currentStaff' || activeTab === 'netStaffing') {
     const staffRows = getFilteredCurrentStaffRows();
     document.getElementById('rowCount').textContent = 'Showing ' + staffRows.length.toLocaleString() + ' of ' + currentStaffData.length.toLocaleString() + ' rows';
+  } else if (activeTab === 'assumptions') {
+    const activeMonths = months.filter(m => selectedMonths.has(m));
+    const assumptionRows = workloadData.filter(w =>
+      selectedVerticals.has(w.vertical) &&
+      selectedQueues.has(w.queue)
+    );
+    const shown = assumptionRows.length * activeMonths.length;
+    const total = workloadData.length * months.length;
+    document.getElementById('rowCount').textContent = 'Showing ' + shown.toLocaleString() + ' of ' + total.toLocaleString() + ' rows';
   } else if (activeTab === 'workforceInput') {
     const rows = workloadPctData.filter(w =>
       selectedVerticals.has(w.vertical) &&
@@ -1109,6 +1120,7 @@ function render() {
   document.getElementById('workforceInputSection').classList.toggle('section-hidden', activeTab !== 'workforceInput');
   document.getElementById('currentStaffSection').classList.toggle('section-hidden', activeTab !== 'currentStaff');
   document.getElementById('netStaffingSection').classList.toggle('section-hidden', activeTab !== 'netStaffing');
+  document.getElementById('assumptionsSection').classList.toggle('section-hidden', activeTab !== 'assumptions');
   document.getElementById('formulasSection').classList.toggle('section-hidden', activeTab !== 'formulas');
   document.getElementById('versionHistorySection').classList.toggle('section-hidden', activeTab !== 'versionHistory');
 
@@ -1120,8 +1132,43 @@ function render() {
   else if (activeTab === 'workforceInput') renderWorkforceInput();
   else if (activeTab === 'currentStaff') renderCurrentStaff();
   else if (activeTab === 'netStaffing') renderNetStaffing(filtered);
+  else if (activeTab === 'assumptions') renderAssumptions();
   else if (activeTab === 'formulas') renderFormulas();
   else if (activeTab === 'versionHistory') renderVersionHistory();
+}
+
+function renderAssumptions() {
+  const container = document.getElementById('assumptionsSection');
+  const activeMonths = months.filter(m => selectedMonths.has(m));
+  const rows = workloadData
+    .filter(w => selectedVerticals.has(w.vertical) && selectedQueues.has(w.queue))
+    .slice()
+    .sort((a, b) => (a.vertical + '|||' + a.queue).localeCompare(b.vertical + '|||' + b.queue));
+
+  let html = '<div class="pivot-title">Assumptions by Queue</div>';
+  html += '<div class="pivot-subtitle">Weekly Volume = Avg Volume × 7, with AHT by queue and month.</div>';
+  html += '<div class="table-wrap"><table><thead><tr>';
+  html += '<th>Vertical</th><th>Queue</th><th>Month</th><th>Avg Volume</th><th>Weekly Volume</th><th>AHT (s)</th>';
+  html += '</tr></thead><tbody>';
+
+  rows.forEach(w => {
+    activeMonths.forEach(m => {
+      const avg = Number(w.avgVolume[m] || 0);
+      const weekly = avg * 7;
+      const aht = Number(w.aht[m] || 0);
+      html += '<tr>';
+      html += '<td>' + escHtml(w.vertical) + '</td>';
+      html += '<td>' + escHtml(w.queue) + '</td>';
+      html += '<td>' + escHtml(formatDisplayMonth(m)) + '</td>';
+      html += '<td class="num-cell">' + fmtInt(avg) + '</td>';
+      html += '<td class="num-cell">' + fmtInt(weekly) + '</td>';
+      html += '<td class="num-cell">' + fmtInt(aht) + '</td>';
+      html += '</tr>';
+    });
+  });
+
+  html += '</tbody></table></div>';
+  container.innerHTML = html;
 }
 
 function renderDetail(filtered) {
