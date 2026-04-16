@@ -292,12 +292,12 @@ Internal, Con - India, Con - Latam, Probe - India, ALMS - India, Sutherland - In
   <div class="tab" data-tab="pivotVerticalIntExt">Headcount (HC) by Vertical (Int/Ext)</div>
   <div class="tab" data-tab="pivotWf">Headcount (HC) by Workforce</div>
   <div class="tab" data-tab="hrsByWf">Hours by Workforce</div>
-  <div class="tab" data-tab="workforceInput">Workforce % Input</div>
+  <div class="tab" data-tab="assumptions">Assumptions</div>
   <div class="tab" data-tab="currentStaff">Current Staff</div>
   <div class="tab" data-tab="netStaffing">Net Staffing</div>
-  <div class="tab" data-tab="assumptions">Assumptions</div>
   <div class="tab" data-tab="formulas">Formulas</div>
   <div class="tab" data-tab="versionHistory">Version History</div>
+  <div class="tab" data-tab="workforceInput">Workforce % Input</div>
   <div class="tab" data-tab="detail">Detail Table</div>
 </div>
 <div class="content" id="content">
@@ -2069,17 +2069,23 @@ function renderHrsByWf(filtered) {
 function renderFormulas() {
   const c = document.getElementById('formulasSection');
   c.innerHTML =
-    '<div class="pivot-title">Calculation Formulas</div>' +
+    '<div class="pivot-title">Calculation Formulas (Current App)</div>' +
     '<div class="table-wrap"><table><thead><tr><th>Component</th><th>Formula</th><th>Notes</th></tr></thead><tbody>' +
-    '<tr><td>Monthly Volume</td><td><code>Monthly Volume = Avg Volume × Working Days</code></td><td>Uses <code>Working Days</code>, not HC days.</td></tr>' +
-    '<tr><td>Total Work (hrs)</td><td><code>Total Work = (Monthly Volume × AHT / 3600) / Occupancy</code></td><td>If AHT, Avg Volume, or Occupancy is 0, Total Work = 0.</td></tr>' +
-    '<tr><td>Queue Prod Hrs</td><td><code>Queue Prod Hrs = Queue Total Work</code></td><td>Applied once per queue/month (no workforce-row application).</td></tr>' +
-    '<tr><td>Shrink Hrs</td><td><code>Shrink Hrs = (External Shrink / (1 - External Shrink)) × Queue Prod Hrs</code></td><td>Always uses vertical <code>Shrink - External</code>.</td></tr>' +
-    '<tr><td>Total Hrs</td><td><code>Total Hrs = Prod Hrs + Shrink Hrs</code></td><td>Queue and aggregate totals roll up from this.</td></tr>' +
-    '<tr><td>Headcount (HC)</td><td><code>HC = Total Hrs / 8 / Working Days HC</code></td><td>Uses <code>Working Days HC</code>.</td></tr>' +
-    '<tr><td>Vertical Total HC</td><td><code>Vertical Total HC = SUM(Queue HC in vertical)</code></td><td>Vertical totals are direct queue sums.</td></tr>' +
-    '<tr><td>Queue Total Hrs</td><td><code>Queue Total Hrs = Queue Prod Hrs + Queue Shrink Hrs</code></td><td></td></tr>' +
-    '<tr><td>Queue HC</td><td><code>Queue HC = Queue Total Hrs / 8 / Working Days HC</code></td><td></td></tr>' +
+    '<tr><td>Workforce % input normalization</td><td><code>pct = (abs(input) &gt; 1) ? input / 100 : input</code></td><td>Whole-number percent entries are auto-converted to decimals.</td></tr>' +
+    '<tr><td>Monthly Volume</td><td><code>Monthly Volume = Avg Volume × Working Days</code></td><td>Uses calendar <code>Working Days</code>.</td></tr>' +
+    '<tr><td>Total Work (hrs)</td><td><code>Total Work = (Monthly Volume × AHT / 3600) / Occupancy</code></td><td>If Avg Volume, AHT, or Occupancy is 0, Total Work is 0.</td></tr>' +
+    '<tr><td>Queue Weekly Volume (Assumptions tab)</td><td><code>Weekly Volume = Avg Volume × 7</code></td><td>Displayed at queue level and summed to vertical totals.</td></tr>' +
+    '<tr><td>Prod Hrs (row level)</td><td><code>Prod Hrs = Queue Total Work × Workforce %</code></td><td>Applies to each workforce row from Workforce % Input.</td></tr>' +
+    '<tr><td>Shrink rate selection</td><td><code>rate = (wfType === Internal) ? Shrink Internal : Shrink External</code></td><td>Selected from shrink sheet by vertical/month.</td></tr>' +
+    '<tr><td>Shrink Hrs</td><td><code>Shrink Hrs = (rate / (1 - rate)) × Prod Hrs</code></td><td>If <code>rate &gt;= 1</code>, shrink is forced to 0.</td></tr>' +
+    '<tr><td>Total Hrs</td><td><code>Total Hrs = Prod Hrs + Shrink Hrs</code></td><td>Used for all HC rollups.</td></tr>' +
+    '<tr><td>Headcount (HC)</td><td><code>HC = Total Hrs / 8 / Working Days HC</code></td><td>Uses <code>Working Days HC</code> (FTE days).</td></tr>' +
+    '<tr><td>Internal Prod Hrs (detail column)</td><td><code>Int Prod Hrs = Queue Total Work × Internal Workforce %</code></td><td>Reference column in detail table.</td></tr>' +
+    '<tr><td>External Prod Hrs (detail column)</td><td><code>External Prod Hrs = max(Prod Hrs - Int Prod Hrs, 0)</code></td><td>Reference column in detail table.</td></tr>' +
+    '<tr><td>Current Staff (display)</td><td><code>Current Staff = Internal + External</code></td><td>Current Staff tab totals are display-only rollups.</td></tr>' +
+    '<tr><td>Net Staffing</td><td><code>Net = Current Staff - Calculated HC</code></td><td>Rendered by vertical → queue → Internal/External groups.</td></tr>' +
+    '<tr><td>Vertical totals</td><td><code>Vertical Total = SUM(queues in vertical)</code></td><td>Used consistently for HC, hours, and assumption summaries.</td></tr>' +
+    '<tr><td>Grand totals</td><td><code>Grand Total = SUM(vertical totals)</code></td><td>Bottom row in hierarchical tables.</td></tr>' +
     '</tbody></table></div>';
 }
 
