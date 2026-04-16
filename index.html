@@ -939,6 +939,8 @@ let currentStaffExpandedVerticals = new Set();
 let currentStaffExpandedSubs = new Set();
 let netStaffExpandedVerticals = new Set();
 let netStaffExpandedSubs = new Set();
+let assumptionsExpandedVerticals = new Set();
+let assumptionsExpandedQueues = new Set();
 let workforcePendingFocusNav = null;
 
 // ===== FORMAT HELPERS =====
@@ -1140,35 +1142,179 @@ function render() {
 function renderAssumptions() {
   const container = document.getElementById('assumptionsSection');
   const activeMonths = months.filter(m => selectedMonths.has(m));
-  const rows = workloadData
+  const queueRows = workloadData
     .filter(w => selectedVerticals.has(w.vertical) && selectedQueues.has(w.queue))
     .slice()
     .sort((a, b) => (a.vertical + '|||' + a.queue).localeCompare(b.vertical + '|||' + b.queue));
 
-  let html = '<div class="pivot-title">Assumptions by Queue</div>';
-  html += '<div class="pivot-subtitle">Weekly Volume = Avg Volume × 7, with AHT by queue and month.</div>';
-  html += '<div class="table-wrap"><table><thead><tr>';
-  html += '<th>Vertical</th><th>Queue</th><th>Month</th><th>Avg Volume</th><th>Weekly Volume</th><th>AHT (s)</th>';
-  html += '</tr></thead><tbody>';
+  if (!queueRows.length) {
+    container.innerHTML = '<div class="pivot-title">Assumptions</div><div class="version-empty">No rows match the current filters.</div>';
+    return;
+  }
 
-  rows.forEach(w => {
-    activeMonths.forEach(m => {
-      const avg = Number(w.avgVolume[m] || 0);
-      const weekly = avg * 7;
-      const aht = Number(w.aht[m] || 0);
-      html += '<tr>';
-      html += '<td>' + escHtml(w.vertical) + '</td>';
-      html += '<td>' + escHtml(w.queue) + '</td>';
-      html += '<td>' + escHtml(formatDisplayMonth(m)) + '</td>';
-      html += '<td class="num-cell">' + fmtInt(avg) + '</td>';
-      html += '<td class="num-cell">' + fmtInt(weekly) + '</td>';
-      html += '<td class="num-cell">' + fmtInt(aht) + '</td>';
-      html += '</tr>';
+  const tree = {};
+  const verticalAgg = {};
+  const queueAgg = {};
+  const grandTotal = {};
+  activeMonths.forEach(m => grandTotal[m] = 0);
+
+  queueRows.forEach(q => {
+    if (!tree[q.vertical]) tree[q.vertical] = {};
+    tree[q.vertical][q.queue] = q;
+  });
+
+  Object.keys(tree).sort().forEach(v => {
+    verticalAgg[v] = {};
+    activeMonths.forEach(m => verticalAgg[v][m] = 0);
+    Object.keys(tree[v]).sort().forEach(qName => {
+      const qKey = v + '|||' + qName;
+      queueAgg[qKey] = {};
+      activeMonths.forEach(m => {
+        const weeklyVol = Number(tree[v][qName].avgVolume[m] || 0) * 7;
+        queueAgg[qKey][m] = weeklyVol;
+        verticalAgg[v][m] += weeklyVol;
+        grandTotal[m] += weeklyVol;
+      });
     });
   });
 
-  html += '</tbody></table></div>';
+  let html = '<div class="pivot-title">Assumptions by Vertical — Hierarchical Drill-Down</div>';
+  html += '<div class="pivot-subtitle">Vertical and queue rows show Weekly Volume (Avg Volume × 7). Workforce rows show Internal HC and External Workforce %.</div>';
+  html += '<div class="hier-table"><table><thead><tr><th style="min-width:320px">Name</th>';
+  activeMonths.forEach(m => html += '<th class="num-col">' + formatDisplayMonth(m) + '</th>');
+  html += '<th class="num-col">Total</th></tr></thead><tbody id="assumptionsBody"></tbody></table></div>';
   container.innerHTML = html;
+
+  const tbody = document.getElementById('assumptionsBody');
+
+  Object.keys(tree).sort().forEach(v => {
+    const vExpanded = assumptionsExpandedVerticals.has(v);
+    const vTotal = activeMonths.reduce((s, m) => s + (verticalAgg[v][m] || 0), 0);
+
+    const vtr = document.createElement('tr');
+    vtr.className = 'level-1';
+    const vtd = document.createElement('td');
+    vtd.className = 'name-cell indent-1';
+    vtd.innerHTML = '<span class="toggle-arrow">' + (vExpanded ? '▼' : '▶') + '</span> ' + escHtml(v);
+    vtr.appendChild(vtd);
+
+    activeMonths.forEach(m => {
+      const td = document.createElement('td');
+      td.className = 'num-cell';
+      td.textContent = fmtInt(verticalAgg[v][m] || 0);
+      vtr.appendChild(td);
+    });
+
+    const vTotalTd = document.createElement('td');
+    vTotalTd.className = 'num-cell';
+    vTotalTd.textContent = fmtInt(vTotal);
+    vtr.appendChild(vTotalTd);
+
+    vtr.addEventListener('click', () => {
+      if (assumptionsExpandedVerticals.has(v)) assumptionsExpandedVerticals.delete(v);
+      else assumptionsExpandedVerticals.add(v);
+      renderAssumptions();
+    });
+    tbody.appendChild(vtr);
+    if (!vExpanded) return;
+
+    Object.keys(tree[v]).sort().forEach(qName => {
+      const qKey = v + '|||' + qName;
+      const qExpanded = assumptionsExpandedQueues.has(qKey);
+      const q = tree[v][qName];
+      const qTotal = activeMonths.reduce((s, m) => s + (queueAgg[qKey][m] || 0), 0);
+
+      const qtr = document.createElement('tr');
+      qtr.className = 'level-2';
+      const qtd = document.createElement('td');
+      qtd.className = 'name-cell indent-2';
+      qtd.innerHTML = '<span class="toggle-arrow">' + (qExpanded ? '▼' : '▶') + '</span> ' + escHtml(qName);
+      qtr.appendChild(qtd);
+
+      activeMonths.forEach(m => {
+        const td = document.createElement('td');
+        td.className = 'num-cell';
+        td.textContent = fmtInt(queueAgg[qKey][m] || 0);
+        qtr.appendChild(td);
+      });
+
+      const qTotalTd = document.createElement('td');
+      qTotalTd.className = 'num-cell';
+      qTotalTd.textContent = fmtInt(qTotal);
+      qtr.appendChild(qTotalTd);
+
+      qtr.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (assumptionsExpandedQueues.has(qKey)) assumptionsExpandedQueues.delete(qKey);
+        else assumptionsExpandedQueues.add(qKey);
+        renderAssumptions();
+      });
+      tbody.appendChild(qtr);
+      if (!qExpanded) return;
+
+      const wfRows = workloadPctData
+        .filter(w =>
+          w.vertical === v &&
+          w.queue === qName &&
+          selectedWfTypes.has(w.type)
+        )
+        .slice()
+        .sort((a, b) => wfTypeCompare(a.type, b.type));
+
+      wfRows.forEach(wf => {
+        const isInternal = wf.type === 'Internal';
+        const wtr = document.createElement('tr');
+        wtr.className = 'level-3';
+        const wtd = document.createElement('td');
+        wtd.className = 'name-cell indent-3';
+        if (isInternal) wtd.textContent = 'Internal (HC)';
+        else wtd.textContent = wf.type + ' (External %)';
+        wtr.appendChild(wtd);
+
+        let totalVal = 0;
+        activeMonths.forEach(m => {
+          const td = document.createElement('td');
+          td.className = 'num-cell';
+          if (isInternal) {
+            const hc = getCurrentStaffInternalHC(v, qName, m);
+            totalVal += hc;
+            td.textContent = fmtInt(hc);
+          } else {
+            const pct = Number(wf.pct[m] || 0);
+            totalVal += pct;
+            td.textContent = fmtPct(pct);
+          }
+          wtr.appendChild(td);
+        });
+
+        const wTotalTd = document.createElement('td');
+        wTotalTd.className = 'num-cell';
+        if (isInternal) wTotalTd.textContent = fmtInt(totalVal);
+        else wTotalTd.textContent = fmtPct(activeMonths.length ? (totalVal / activeMonths.length) : 0);
+        wtr.appendChild(wTotalTd);
+        tbody.appendChild(wtr);
+      });
+    });
+  });
+
+  const gt = activeMonths.reduce((s, m) => s + (grandTotal[m] || 0), 0);
+  const gtr = document.createElement('tr');
+  gtr.className = 'hier-total';
+  const gtd = document.createElement('td');
+  gtd.className = 'name-cell indent-1';
+  gtd.textContent = 'GRAND TOTAL';
+  gtr.appendChild(gtd);
+  activeMonths.forEach(m => {
+    const td = document.createElement('td');
+    td.className = 'num-cell';
+    td.textContent = fmtInt(grandTotal[m] || 0);
+    gtr.appendChild(td);
+  });
+  const gtTd = document.createElement('td');
+  gtTd.className = 'num-cell';
+  gtTd.textContent = fmtInt(gt);
+  gtr.appendChild(gtTd);
+  tbody.appendChild(gtr);
 }
 
 function renderDetail(filtered) {
@@ -2747,6 +2893,8 @@ function rebuildFromData() {
   currentStaffExpandedSubs = new Set();
   netStaffExpandedVerticals = new Set();
   netStaffExpandedSubs = new Set();
+  assumptionsExpandedVerticals = new Set();
+  assumptionsExpandedQueues = new Set();
 
   initFilters();
   render();
