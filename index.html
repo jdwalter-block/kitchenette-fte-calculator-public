@@ -2097,20 +2097,22 @@ function renderFormulas() {
     '<div class="pivot-title">Calculation Formulas (Current App)</div>' +
     '<div class="table-wrap"><table><thead><tr><th>Component</th><th>Formula</th><th>Notes</th></tr></thead><tbody>' +
     '<tr><td>Workforce % input normalization</td><td><code>pct = (abs(input) &gt; 1) ? input / 100 : input</code></td><td>Whole-number percent entries are auto-converted to decimals.</td></tr>' +
-    '<tr><td>Monthly Volume</td><td><code>Monthly Volume = Avg Volume × Working Days</code></td><td>Uses calendar <code>Working Days</code>.</td></tr>' +
-    '<tr><td>Total Work (hrs)</td><td><code>Total Work = (Monthly Volume × AHT / 3600) / Occupancy</code></td><td>If Avg Volume, AHT, or Occupancy is 0, Total Work is 0.</td></tr>' +
+    '<tr><td>Monthly Volume</td><td><code>Monthly Volume = Avg Volume × Working Days</code></td><td>Computed per workflow/month.</td></tr>' +
+    '<tr><td>Base Total Work (hrs)</td><td><code>Base Total Work = (Monthly Volume × AHT / 3600) / Occupancy</code></td><td>If Avg Volume, AHT, or Occupancy is 0, Base Total Work is 0.</td></tr>' +
+    '<tr><td>Workflow Total Work override</td><td><code>Workflow Total Work = Override Total Work (if present) else Base Total Work</code></td><td>Reads from <code>QUEUE_TOTAL_WORK_OVERRIDES</code>.</td></tr>' +
     '<tr><td>Workflow Weekly Volume (Assumptions tab)</td><td><code>Weekly Volume = Avg Volume × 7</code></td><td>Displayed at workflow level and summed to vertical totals.</td></tr>' +
-    '<tr><td>Prod Hrs (row level)</td><td><code>Prod Hrs = Workflow Total Work × Workforce %</code></td><td>Applies to each workforce row from Workforce % Input.</td></tr>' +
-    '<tr><td>Shrink rate selection</td><td><code>rate = (wfType === Internal) ? Shrink Internal : Shrink External</code></td><td>Selected from shrink sheet by vertical/month.</td></tr>' +
-    '<tr><td>Shrink Hrs</td><td><code>Shrink Hrs = (rate / (1 - rate)) × Prod Hrs</code></td><td>If <code>rate &gt;= 1</code>, shrink is forced to 0.</td></tr>' +
+    '<tr><td>Prod Hrs (row level)</td><td><code>Prod Hrs = Workflow Total Work × Workforce %</code></td><td>Applied to each workforce row from Workforce % Input.</td></tr>' +
+    '<tr><td>Internal Prod Hrs (reference)</td><td><code>Internal Prod Hrs = max(0, Internal HC) × 8 × Working Days HC × (1 - Shrink Internal)</code></td><td>Reference/detail value; does not replace row Prod Hrs.</td></tr>' +
+    '<tr><td>External Prod Hrs (reference)</td><td><code>External Prod Hrs = max(0, Prod Hrs - Internal Prod Hrs)</code></td><td>Reference/detail value.</td></tr>' +
+    '<tr><td>Shrink rate used for row calc</td><td><code>rate = Shrink External</code></td><td>Current production formula always uses external billable shrink for row shrink hours.</td></tr>' +
+    '<tr><td>Shrink Hrs</td><td><code>Shrink Hrs = (rate / (1 - rate)) × Prod Hrs</code></td><td>If <code>rate === 1</code>, shrink is forced to 0.</td></tr>' +
     '<tr><td>Total Hrs</td><td><code>Total Hrs = Prod Hrs + Shrink Hrs</code></td><td>Used for all HC rollups.</td></tr>' +
     '<tr><td>Headcount (HC)</td><td><code>HC = Total Hrs / 8 / Working Days HC</code></td><td>Uses <code>Working Days HC</code> (FTE days).</td></tr>' +
-    '<tr><td>Internal Prod Hrs (detail column)</td><td><code>Int Prod Hrs = Workflow Total Work × Internal Workforce %</code></td><td>Reference column in detail table.</td></tr>' +
-    '<tr><td>External Prod Hrs (detail column)</td><td><code>External Prod Hrs = max(Prod Hrs - Int Prod Hrs, 0)</code></td><td>Reference column in detail table.</td></tr>' +
+    '<tr><td>Vertical totals</td><td><code>Vertical metric = SUM(workflows in vertical)</code></td><td>Applied for volume, work, hours, and HC displays.</td></tr>' +
+    '<tr><td>Grand totals</td><td><code>Grand Total = SUM(vertical totals)</code></td><td>Bottom row in hierarchical tables.</td></tr>' +
     '<tr><td>Current Staff (display)</td><td><code>Current Staff = Internal + External</code></td><td>Current Staff tab totals are display-only rollups.</td></tr>' +
     '<tr><td>Net Staffing</td><td><code>Net = Current Staff - Calculated HC</code></td><td>Rendered by vertical → workflow → Internal/External groups.</td></tr>' +
-    '<tr><td>Vertical totals</td><td><code>Vertical Total = SUM(workflows in vertical)</code></td><td>Used consistently for HC, hours, and assumption summaries.</td></tr>' +
-    '<tr><td>Grand totals</td><td><code>Grand Total = SUM(vertical totals)</code></td><td>Bottom row in hierarchical tables.</td></tr>' +
+    '<tr><td>Risk Ops target calibration (optional)</td><td><code>When targets exist: scale Prod, Shrink, and Total by section/month/group to target values; then recompute HC</code></td><td>Applied by <code>applyRiskOpsTargetsToRows()</code> only when target data is loaded.</td></tr>' +
     '</tbody></table></div>';
 }
 
