@@ -570,34 +570,9 @@ function parseExcel(arrayBuffer) {
   workloadData = Object.values(wlMap);
 
   // ===== WORKLOAD% SHEET =====
-  const wpSheet = wb.Sheets['Workload%'];
-  if (!wpSheet) throw new Error('Missing "Workload%" sheet');
-  const wpRaw = XLSX.utils.sheet_to_json(wpSheet, {header:1});
-
-  const wpHeaders = wpRaw[0];
-  const wpMonthCols = [];
-  for (let i = 3; i < wpHeaders.length; i++) {
-    const sm = toShortMonth(wpHeaders[i]);
-    if (sm && months.includes(sm)) wpMonthCols.push({idx: i, month: sm});
-  }
-
-  workloadPctData = [];
-  let wpVertical = '', wpQueue = '';
-  for (let r = 1; r < wpRaw.length; r++) {
-    const row = wpRaw[r];
-    if (!row || row.every(c => c === null || c === undefined || c === '')) continue;
-    if (row[0] && String(row[0]).trim()) {
-      wpVertical = canonicalVertical(String(row[0]).trim());
-      wpQueue = ''; // prevent queue carry-over into a new vertical
-    }
-    if (row[1] && String(row[1]).trim()) wpQueue = String(row[1]).trim();
-    const wfType = String(row[2] || '').trim();
-    if (!wpVertical || !wpQueue || !wfType) continue;
-
-    const pct = {};
-    wpMonthCols.forEach(mc => { pct[mc.month] = parseNum(row[mc.idx]); });
-    workloadPctData.push({vertical: wpVertical, queue: wpQueue, type: wfType, pct});
-  }
+  // Intentionally ignored on file load.
+  // Workforce allocation percentages come from Workforce % Input tab
+  // (persisted in local storage and applied via applySavedWorkforceInputs()).
 
   // ===== VERSION SHEET (optional) =====
   const verSheet = wb.Sheets['Version'];
