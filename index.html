@@ -297,8 +297,9 @@ Internal, Con - India, Con - Latam, Probe - India, ALMS - India, Sutherland - In
   <div class="tab" data-tab="assumptions">Assumptions</div>
   <div class="tab" data-tab="currentStaff">Current Staff</div>
   <div class="tab" data-tab="netStaffing">Net Staffing</div>
-  <div class="tab" data-tab="appOverview">App Overview</div>
+  <div class="tab" data-tab="verticalNetStaff">Vertical Net Staff</div>
   <div class="tab" data-tab="formulas">Formulas</div>
+  <div class="tab" data-tab="appOverview">App Overview</div>
   <div class="tab" data-tab="versionHistory" id="tab-versionHistory">Version History</div>
   <div class="tab" data-tab="workforceInput" id="tab-workforceInput">Workforce % Input</div>
   <div class="tab" data-tab="detail">Detail Table</div>
@@ -317,6 +318,7 @@ Internal, Con - India, Con - Latam, Probe - India, ALMS - India, Sutherland - In
   <div id="workforceInputSection" class="section-hidden"></div>
   <div id="currentStaffSection" class="section-hidden"></div>
   <div id="netStaffingSection" class="section-hidden"></div>
+  <div id="verticalNetStaffSection" class="section-hidden"></div>
   <div id="assumptionsSection" class="section-hidden"></div>
   <div id="appOverviewSection" class="section-hidden"></div>
   <div id="formulasSection" class="section-hidden"></div>
@@ -1195,6 +1197,7 @@ let currentStaffExpandedVerticals = new Set();
 let currentStaffExpandedSubs = new Set();
 let netStaffExpandedVerticals = new Set();
 let netStaffExpandedSubs = new Set();
+let verticalNetStaffShowBreakdown = false;
 let assumptionsExpandedVerticals = new Set();
 let assumptionsExpandedQueues = new Set();
 let workforcePendingFocusNav = null;
@@ -1370,7 +1373,7 @@ function getFilteredCurrentStaffRows() {
 
 function render() {
   const filtered = getFilteredRows();
-  if (activeTab === 'currentStaff' || activeTab === 'netStaffing') {
+  if (activeTab === 'currentStaff' || activeTab === 'netStaffing' || activeTab === 'verticalNetStaff') {
     const staffRows = getFilteredCurrentStaffRows();
     document.getElementById('rowCount').textContent = 'Showing ' + staffRows.length.toLocaleString() + ' of ' + currentStaffData.length.toLocaleString() + ' rows';
   } else if (activeTab === 'assumptions') {
@@ -1401,6 +1404,7 @@ function render() {
   document.getElementById('workforceInputSection').classList.toggle('section-hidden', activeTab !== 'workforceInput');
   document.getElementById('currentStaffSection').classList.toggle('section-hidden', activeTab !== 'currentStaff');
   document.getElementById('netStaffingSection').classList.toggle('section-hidden', activeTab !== 'netStaffing');
+  document.getElementById('verticalNetStaffSection').classList.toggle('section-hidden', activeTab !== 'verticalNetStaff');
   document.getElementById('assumptionsSection').classList.toggle('section-hidden', activeTab !== 'assumptions');
   document.getElementById('appOverviewSection').classList.toggle('section-hidden', activeTab !== 'appOverview');
   document.getElementById('formulasSection').classList.toggle('section-hidden', activeTab !== 'formulas');
@@ -1414,6 +1418,7 @@ function render() {
   else if (activeTab === 'workforceInput') renderWorkforceInput();
   else if (activeTab === 'currentStaff') renderCurrentStaff();
   else if (activeTab === 'netStaffing') renderNetStaffing(filtered);
+  else if (activeTab === 'verticalNetStaff') renderVerticalNetStaff();
   else if (activeTab === 'assumptions') renderAssumptions();
   else if (activeTab === 'appOverview') renderAppOverview();
   else if (activeTab === 'formulas') renderFormulas();
@@ -2487,6 +2492,7 @@ function renderFormulas() {
     '<tr><td>Grand totals</td><td><code>Grand Total = SUM(vertical totals)</code></td><td>Bottom row in hierarchical tables.</td></tr>' +
     '<tr><td>Current Staff (display)</td><td><code>Current Staff = Internal + External</code></td><td>Current Staff tab totals are display-only rollups.</td></tr>' +
     '<tr><td>Net Staffing</td><td><code>Net = Current Staff - Calculated HC</code></td><td>Rendered by vertical → workflow → Internal/External groups.</td></tr>' +
+    '<tr><td>Vertical Net Staff</td><td><code>Variance = Current Staff - Required Staff</code></td><td>Breakdown view shows Current Staff, Required Staff, and Variance by month at vertical level.</td></tr>' +
     '<tr><td>Risk Ops target calibration (optional)</td><td><code>When targets exist: scale Prod, Shrink, and Total by section/month/group to target values; then recompute HC</code></td><td>Applied by <code>applyRiskOpsTargetsToRows()</code> only when target data is loaded.</td></tr>' +
     '</tbody></table></div>';
 }
@@ -3092,6 +3098,168 @@ function renderNetStaffing() {
   gtTd.className = 'num-cell';
   gtTd.textContent = fmtInt(gt);
   gtr.appendChild(gtTd);
+  tbody.appendChild(gtr);
+}
+
+function renderVerticalNetStaff() {
+  const container = document.getElementById('verticalNetStaffSection');
+  const activeMonths = months.filter(m => selectedMonths.has(m));
+  const staffRows = getFilteredCurrentStaffRows();
+
+  if (!staffRows.length) {
+    container.innerHTML = '<div class="pivot-title">Vertical Net Staff</div><div class="version-empty">No rows match the current filters.</div>';
+    return;
+  }
+
+  const currentByVertical = {};
+  staffRows.forEach(r => {
+    const v = displayStaffVerticalName(r.vertical);
+    if (!currentByVertical[v]) {
+      currentByVertical[v] = {};
+      activeMonths.forEach(m => currentByVertical[v][m] = 0);
+    }
+    activeMonths.forEach(m => {
+      const cur = (r.staff && r.staff[m]) ? r.staff[m] : {internal:0, external:0};
+      currentByVertical[v][m] += (cur.internal || 0) + (cur.external || 0);
+    });
+  });
+
+  const requiredByVertical = {};
+  allRows.forEach(r => {
+    if (!selectedVerticals.has(r.vertical) || !selectedMonths.has(r.month)) return;
+    const v = displayStaffVerticalName(r.vertical);
+    if (!requiredByVertical[v]) {
+      requiredByVertical[v] = {};
+      activeMonths.forEach(m => requiredByVertical[v][m] = 0);
+    }
+    requiredByVertical[v][r.month] += (r.fte || 0);
+  });
+
+  const verticals = [...new Set([
+    ...Object.keys(currentByVertical),
+    ...Object.keys(requiredByVertical)
+  ])].sort();
+
+  if (!verticals.length) {
+    container.innerHTML = '<div class="pivot-title">Vertical Net Staff</div><div class="version-empty">No rows match the current filters.</div>';
+    return;
+  }
+
+  const toggleLabel = verticalNetStaffShowBreakdown ? 'Hide Breakdown' : 'Show Breakdown';
+  let headerRow1 = '<tr class="section-header"><th class="name-hdr" rowspan="' + (verticalNetStaffShowBreakdown ? '2' : '1') + '">Vertical</th>';
+  activeMonths.forEach(m => {
+    if (verticalNetStaffShowBreakdown) {
+      headerRow1 += '<th colspan="3" class="section-divider" style="text-align:center;font-size:12px;color:var(--text)">' + formatDisplayMonth(m) + '</th>';
+    } else {
+      headerRow1 += '<th class="section-divider section-total" style="text-align:center;font-size:12px;color:var(--green)">Variance ' + formatDisplayMonth(m) + '</th>';
+    }
+  });
+  headerRow1 += '</tr>';
+
+  let headerRow2 = '';
+  if (verticalNetStaffShowBreakdown) {
+    headerRow2 = '<tr class="month-header">';
+    activeMonths.forEach(() => {
+      headerRow2 += '<th class="section-divider" style="color:var(--accent)">Current</th>';
+      headerRow2 += '<th style="color:var(--yellow)">Required</th>';
+      headerRow2 += '<th style="color:var(--green)">Variance</th>';
+    });
+    headerRow2 += '</tr>';
+  }
+
+  container.innerHTML =
+    '<div class="pivot-title">Vertical Net Staff (Current - Required) <button class="btn" id="verticalNetStaffBreakdownToggle" style="margin-left:10px;padding:4px 8px;font-size:11px;vertical-align:middle">' + toggleLabel + '</button></div>' +
+    '<div class="hrs-table"><table>' +
+    '<thead>' + headerRow1 + headerRow2 + '</thead>' +
+    '<tbody id="verticalNetStaffBody"></tbody></table></div>';
+
+  const toggle = document.getElementById('verticalNetStaffBreakdownToggle');
+  if (toggle) {
+    toggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      verticalNetStaffShowBreakdown = !verticalNetStaffShowBreakdown;
+      renderVerticalNetStaff();
+    });
+  }
+
+  const tbody = document.getElementById('verticalNetStaffBody');
+  const grand = {};
+  activeMonths.forEach(m => grand[m] = {current:0, required:0, variance:0});
+
+  verticals.forEach(v => {
+    const tr = document.createElement('tr');
+    tr.className = 'hrs-l1';
+    const tdName = document.createElement('td');
+    tdName.className = 'hrs-name';
+    tdName.textContent = v;
+    tr.appendChild(tdName);
+
+    activeMonths.forEach(m => {
+      const cur = ((currentByVertical[v] && currentByVertical[v][m]) || 0);
+      const req = ((requiredByVertical[v] && requiredByVertical[v][m]) || 0);
+      const variance = cur - req;
+
+      grand[m].current += cur;
+      grand[m].required += req;
+      grand[m].variance += variance;
+
+      if (!verticalNetStaffShowBreakdown) {
+        const tdVar = document.createElement('td');
+        tdVar.className = 'total-col section-divider';
+        tdVar.textContent = fmtInt(variance);
+        tr.appendChild(tdVar);
+      } else {
+        const tdCur = document.createElement('td');
+        tdCur.className = 'prod-col section-divider';
+        tdCur.textContent = fmtInt(cur);
+        tr.appendChild(tdCur);
+
+        const tdReq = document.createElement('td');
+        tdReq.className = 'shrink-col';
+        tdReq.textContent = fmtInt(req);
+        tr.appendChild(tdReq);
+
+        const tdVar = document.createElement('td');
+        tdVar.className = 'total-col';
+        tdVar.textContent = fmtInt(variance);
+        tr.appendChild(tdVar);
+      }
+    });
+
+    tbody.appendChild(tr);
+  });
+
+  const gtr = document.createElement('tr');
+  gtr.className = 'hier-total';
+  const gtdName = document.createElement('td');
+  gtdName.className = 'hrs-name';
+  gtdName.textContent = 'GRAND TOTAL';
+  gtr.appendChild(gtdName);
+
+  activeMonths.forEach(m => {
+    if (!verticalNetStaffShowBreakdown) {
+      const tdVar = document.createElement('td');
+      tdVar.className = 'total-col section-divider';
+      tdVar.textContent = fmtInt(grand[m].variance);
+      gtr.appendChild(tdVar);
+    } else {
+      const tdCur = document.createElement('td');
+      tdCur.className = 'prod-col section-divider';
+      tdCur.textContent = fmtInt(grand[m].current);
+      gtr.appendChild(tdCur);
+
+      const tdReq = document.createElement('td');
+      tdReq.className = 'shrink-col';
+      tdReq.textContent = fmtInt(grand[m].required);
+      gtr.appendChild(tdReq);
+
+      const tdVar = document.createElement('td');
+      tdVar.className = 'total-col';
+      tdVar.textContent = fmtInt(grand[m].variance);
+      gtr.appendChild(tdVar);
+    }
+  });
+
   tbody.appendChild(gtr);
 }
 
