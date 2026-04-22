@@ -216,7 +216,7 @@ A comprehensive, single-file web application for workforce planning and FTE calc
 6. **FTE** = Total Hrs / 8 / Working Days FTE
 
 ### Data Sources (Embedded)
-- **Calendar**: Working days per month (Apr–Dec)
+- **Calendar**: Working days per month (May–Dec)
 - **Shrink Sheet**: Occupancy, shrink internal, shrink external rates per vertical per month
 - **Workload Sheet**: AHT and avg volume per vertical/queue per month
 - **Workload % Sheet**: Workforce type allocation percentages per vertical/queue per month
@@ -338,9 +338,9 @@ function formatDisplayMonth(month) {
 }
 
 // ===== MUTABLE DATA =====
-let months = ["Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-let workingDays = {"Apr":30.0,"May":30.0,"Jun":29.0,"Jul":30.0,"Aug":31.0,"Sep":29.0,"Oct":30.0,"Nov":28.0,"Dec":30.0};
-let workingDaysFte = {"Apr":21.0,"May":21.0,"Jun":21.0,"Jul":21.0,"Aug":22.0,"Sep":21.0,"Oct":21.0,"Nov":20.0,"Dec":21.0};
+let months = ["May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+let workingDays = {"May":30.0,"Jun":29.0,"Jul":30.0,"Aug":31.0,"Sep":29.0,"Oct":30.0,"Nov":28.0,"Dec":30.0};
+let workingDaysFte = {"May":21.0,"Jun":21.0,"Jul":21.0,"Aug":22.0,"Sep":21.0,"Oct":21.0,"Nov":20.0,"Dec":21.0};
 
 let shrinkData = {"Afterpay":{"occupancy":{"Apr":1.0,"May":1.0,"Jun":1.0,"Jul":1.0,"Aug":1.0,"Sep":1.0,"Oct":1.0,"Nov":1.0,"Dec":1.0},"shrinkInternal":{"Apr":0.3,"May":0.3,"Jun":0.3,"Jul":0.3,"Aug":0.3,"Sep":0.3,"Oct":0.3,"Nov":0.3,"Dec":0.3},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}},"ATO":{"occupancy":{"Apr":1.0,"May":1.0,"Jun":1.0,"Jul":1.0,"Aug":1.0,"Sep":1.0,"Oct":1.0,"Nov":1.0,"Dec":1.0},"shrinkInternal":{"Apr":0.3,"May":0.3,"Jun":0.3,"Jul":0.3,"Aug":0.3,"Sep":0.3,"Oct":0.3,"Nov":0.3,"Dec":0.3},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}},"Appeals":{"occupancy":{"Apr":1.0,"May":1.0,"Jun":1.0,"Jul":1.0,"Aug":1.0,"Sep":1.0,"Oct":1.0,"Nov":1.0,"Dec":1.0},"shrinkInternal":{"Apr":0.3,"May":0.3,"Jun":0.3,"Jul":0.3,"Aug":0.3,"Sep":0.3,"Oct":0.3,"Nov":0.3,"Dec":0.3},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}},"Banking":{"occupancy":{"Apr":1.0,"May":1.0,"Jun":1.0,"Jul":1.0,"Aug":1.0,"Sep":1.0,"Oct":1.0,"Nov":1.0,"Dec":1.0},"shrinkInternal":{"Apr":0.3,"May":0.3,"Jun":0.3,"Jul":0.3,"Aug":0.3,"Sep":0.3,"Oct":0.3,"Nov":0.3,"Dec":0.3},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}},"BIT":{"occupancy":{"Apr":1.0,"May":1.0,"Jun":1.0,"Jul":1.0,"Aug":1.0,"Sep":1.0,"Oct":1.0,"Nov":1.0,"Dec":1.0},"shrinkInternal":{"Apr":0.35,"May":0.35,"Jun":0.35,"Jul":0.35,"Aug":0.35,"Sep":0.35,"Oct":0.35,"Nov":0.35,"Dec":0.35},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}},"Disputes":{"occupancy":{"Apr":1.0,"May":1.0,"Jun":1.0,"Jul":1.0,"Aug":1.0,"Sep":1.0,"Oct":1.0,"Nov":1.0,"Dec":1.0},"shrinkInternal":{"Apr":0.3,"May":0.3,"Jun":0.3,"Jul":0.3,"Aug":0.3,"Sep":0.3,"Oct":0.3,"Nov":0.3,"Dec":0.3},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}},"Foundations":{"occupancy":{"Apr":1.0,"May":1.0,"Jun":1.0,"Jul":1.0,"Aug":1.0,"Sep":1.0,"Oct":1.0,"Nov":1.0,"Dec":1.0},"shrinkInternal":{"Apr":0.35,"May":0.35,"Jun":0.35,"Jul":0.35,"Aug":0.35,"Sep":0.35,"Oct":0.35,"Nov":0.35,"Dec":0.35},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}},"I&C":{"occupancy":{"Apr":1.0,"May":1.0,"Jun":1.0,"Jul":1.0,"Aug":1.0,"Sep":1.0,"Oct":1.0,"Nov":1.0,"Dec":1.0},"shrinkInternal":{"Apr":0.3,"May":0.3,"Jun":0.3,"Jul":0.3,"Aug":0.3,"Sep":0.3,"Oct":0.3,"Nov":0.3,"Dec":0.3},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}},"Scam":{"occupancy":{"Apr":1.0,"May":1.0,"Jun":1.0,"Jul":1.0,"Aug":1.0,"Sep":1.0,"Oct":1.0,"Nov":1.0,"Dec":1.0},"shrinkInternal":{"Apr":0.3,"May":0.3,"Jun":0.3,"Jul":0.3,"Aug":0.3,"Sep":0.3,"Oct":0.3,"Nov":0.3,"Dec":0.3},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}},"Square":{"occupancy":{"Apr":1.0,"May":1.0,"Jun":1.0,"Jul":1.0,"Aug":1.0,"Sep":1.0,"Oct":1.0,"Nov":1.0,"Dec":1.0},"shrinkInternal":{"Apr":0.3,"May":0.3,"Jun":0.3,"Jul":0.3,"Aug":0.3,"Sep":0.3,"Oct":0.3,"Nov":0.3,"Dec":0.3},"shrinkExternal":{"Apr":0.14,"May":0.14,"Jun":0.14,"Jul":0.14,"Aug":0.14,"Sep":0.14,"Oct":0.14,"Nov":0.14,"Dec":0.14}}};
 
@@ -765,7 +765,7 @@ function parseExcel(arrayBuffer) {
   }
 
   // Use only months that appear in the Shrink sheet AND have working days
-  months = shrinkMonthCols.map(mc => mc.month);
+  months = shrinkMonthCols.map(mc => mc.month).filter(m => m !== 'Apr');
   workingDays = {};
   workingDaysFte = {};
   months.forEach(m => {
@@ -1435,6 +1435,7 @@ function renderAssumptions() {
 
   const tree = {};
   const verticalAgg = {};
+  const verticalAvgWdAgg = {};
   const queueAgg = {};
   const grandTotal = {};
   activeMonths.forEach(m => grandTotal[m] = 0);
@@ -1446,14 +1447,20 @@ function renderAssumptions() {
 
   Object.keys(tree).sort().forEach(v => {
     verticalAgg[v] = {};
+    verticalAvgWdAgg[v] = {};
     activeMonths.forEach(m => verticalAgg[v][m] = 0);
+    activeMonths.forEach(m => verticalAvgWdAgg[v][m] = 0);
     Object.keys(tree[v]).sort().forEach(qName => {
       const qKey = v + '|||' + qName;
       queueAgg[qKey] = {};
       activeMonths.forEach(m => {
-        const weeklyVol = Number(tree[v][qName].avgVolume[m] || 0) * 7;
+        const avgVol = Number(tree[v][qName].avgVolume[m] || 0);
+        const weeklyVol = avgVol * 7;
+        const wd = Number(workingDays[m] || 0);
+        const avgWd = avgVol * wd;
         queueAgg[qKey][m] = weeklyVol;
         verticalAgg[v][m] += weeklyVol;
+        verticalAvgWdAgg[v][m] += avgWd;
         grandTotal[m] += weeklyVol;
       });
     });
@@ -1470,6 +1477,7 @@ function renderAssumptions() {
   Object.keys(tree).sort().forEach(v => {
     const vExpanded = assumptionsExpandedVerticals.has(v);
     const vTotal = activeMonths.reduce((s, m) => s + (verticalAgg[v][m] || 0), 0);
+    const vAvgWdTotal = activeMonths.reduce((s, m) => s + (verticalAvgWdAgg[v][m] || 0), 0);
 
     const vtr = document.createElement('tr');
     vtr.className = 'level-1';
@@ -1481,13 +1489,13 @@ function renderAssumptions() {
     activeMonths.forEach(m => {
       const td = document.createElement('td');
       td.className = 'num-cell';
-      td.textContent = fmtInt(verticalAgg[v][m] || 0);
+      td.innerHTML = '<div>Output: ' + fmtInt(verticalAgg[v][m] || 0) + '</div><div>Avg Vol × WD: ' + fmtInt(verticalAvgWdAgg[v][m] || 0) + '</div>';
       vtr.appendChild(td);
     });
 
     const vTotalTd = document.createElement('td');
     vTotalTd.className = 'num-cell';
-    vTotalTd.textContent = fmtInt(vTotal);
+    vTotalTd.innerHTML = '<div>Output: ' + fmtInt(vTotal) + '</div><div>Avg Vol × WD: ' + fmtInt(vAvgWdTotal) + '</div>';
     vtr.appendChild(vTotalTd);
 
     vtr.addEventListener('click', () => {
@@ -2463,7 +2471,9 @@ function renderFormulas() {
     '<tr><td>Monthly Volume</td><td><code>Monthly Volume = Avg Volume × Working Days</code></td><td>Computed per workflow/month.</td></tr>' +
     '<tr><td>Base Total Work (hrs)</td><td><code>Base Total Work = (Monthly Volume × AHT / 3600) / Occupancy</code></td><td>If Avg Volume, AHT, or Occupancy is 0, Base Total Work is 0.</td></tr>' +
     '<tr><td>Workflow Total Work override</td><td><code>Workflow Total Work = Override Total Work (if present) else Base Total Work</code></td><td>Reads from <code>QUEUE_TOTAL_WORK_OVERRIDES</code>.</td></tr>' +
-    '<tr><td>Workflow Weekly Volume (Assumptions tab)</td><td><code>Weekly Volume = Avg Volume × 7</code></td><td>Displayed at workflow level and summed to vertical totals.</td></tr>' +
+    '<tr><td>Workflow Output (Assumptions tab)</td><td><code>Output = Avg Volume × 7</code></td><td>Displayed at workflow level.</td></tr>' +
+    '<tr><td>Vertical Output (Assumptions tab)</td><td><code>Vertical Output = SUM(Workflow Output)</code></td><td>Displayed at vertical level.</td></tr>' +
+    '<tr><td>Vertical Avg Vol × Working Days (Assumptions tab)</td><td><code>Vertical Avg Vol × WD = SUM(Workflow Avg Volume) × Working Days</code></td><td>Displayed at vertical level by month.</td></tr>' +
     '<tr><td>Prod Hrs (row level)</td><td><code>Prod Hrs = Workflow Total Work × Workforce %</code></td><td>Applied to each workforce row from Workforce % Input.</td></tr>' +
     '<tr><td>Internal Prod Hrs (reference)</td><td><code>Internal Prod Hrs = max(0, Internal HC) × 8 × Working Days HC × (1 - Shrink Internal)</code></td><td>Reference/detail value; does not replace row Prod Hrs.</td></tr>' +
     '<tr><td>External Prod Hrs (reference)</td><td><code>External Prod Hrs = max(0, Prod Hrs - Internal Prod Hrs)</code></td><td>Reference/detail value.</td></tr>' +
