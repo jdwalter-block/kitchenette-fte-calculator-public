@@ -1437,6 +1437,7 @@ function renderAssumptions() {
   const verticalAgg = {};
   const verticalAvgWdAgg = {};
   const queueAgg = {};
+  const queueBaseAgg = {};
   const grandTotal = {};
   activeMonths.forEach(m => grandTotal[m] = 0);
 
@@ -1453,15 +1454,19 @@ function renderAssumptions() {
     Object.keys(tree[v]).sort().forEach(qName => {
       const qKey = v + '|||' + qName;
       queueAgg[qKey] = {};
+      queueBaseAgg[qKey] = {};
       activeMonths.forEach(m => {
         const avgVol = Number(tree[v][qName].avgVolume[m] || 0);
         const weeklyVol = avgVol * 7;
+        const baseVol = Number((tree[v][qName].baseVolume && tree[v][qName].baseVolume[m]) || 0);
+        const baseWeeklyVol = baseVol * 7;
         const wd = Number(workingDays[m] || 0);
         const avgWd = avgVol * wd;
         queueAgg[qKey][m] = weeklyVol;
+        queueBaseAgg[qKey][m] = baseWeeklyVol;
         verticalAgg[v][m] += weeklyVol;
         verticalAvgWdAgg[v][m] += avgWd;
-        grandTotal[m] += weeklyVol;
+        grandTotal[m] += avgWd;
       });
     });
   });
@@ -1476,7 +1481,6 @@ function renderAssumptions() {
 
   Object.keys(tree).sort().forEach(v => {
     const vExpanded = assumptionsExpandedVerticals.has(v);
-    const vTotal = activeMonths.reduce((s, m) => s + (verticalAgg[v][m] || 0), 0);
     const vAvgWdTotal = activeMonths.reduce((s, m) => s + (verticalAvgWdAgg[v][m] || 0), 0);
 
     const vtr = document.createElement('tr');
@@ -1489,13 +1493,13 @@ function renderAssumptions() {
     activeMonths.forEach(m => {
       const td = document.createElement('td');
       td.className = 'num-cell';
-      td.innerHTML = '<div>Output: ' + fmtInt(verticalAgg[v][m] || 0) + '</div><div>Avg Vol × WD: ' + fmtInt(verticalAvgWdAgg[v][m] || 0) + '</div>';
+      td.textContent = fmtInt(verticalAvgWdAgg[v][m] || 0);
       vtr.appendChild(td);
     });
 
     const vTotalTd = document.createElement('td');
     vTotalTd.className = 'num-cell';
-    vTotalTd.innerHTML = '<div>Output: ' + fmtInt(vTotal) + '</div><div>Avg Vol × WD: ' + fmtInt(vAvgWdTotal) + '</div>';
+    vTotalTd.textContent = fmtInt(vAvgWdTotal);
     vtr.appendChild(vTotalTd);
 
     vtr.addEventListener('click', () => {
@@ -1511,6 +1515,7 @@ function renderAssumptions() {
       const qExpanded = assumptionsExpandedQueues.has(qKey);
       const q = tree[v][qName];
       const qTotal = activeMonths.reduce((s, m) => s + (queueAgg[qKey][m] || 0), 0);
+      const qBaseTotal = activeMonths.reduce((s, m) => s + (queueBaseAgg[qKey][m] || 0), 0);
       const qAvgAht = activeMonths.length
         ? activeMonths.reduce((s, m) => s + Number(q.aht[m] || 0), 0) / activeMonths.length
         : 0;
@@ -1526,7 +1531,7 @@ function renderAssumptions() {
         const td = document.createElement('td');
         td.className = 'num-cell';
         const weekly = queueAgg[qKey][m] || 0;
-        const base = Number((q.baseVolume && q.baseVolume[m]) || q.avgVolume[m] || 0);
+        const base = queueBaseAgg[qKey][m] || 0;
         const aht = Number(q.aht[m] || 0);
         td.innerHTML = '<div>Output: ' + fmtInt(weekly) + '</div><div>AHT: ' + fmtInt(aht) + '</div><div class="assumption-base">Base: ' + fmtInt(base) + '</div>';
         qtr.appendChild(td);
@@ -1534,10 +1539,7 @@ function renderAssumptions() {
 
       const qTotalTd = document.createElement('td');
       qTotalTd.className = 'num-cell';
-      const qAvgBase = activeMonths.length
-        ? activeMonths.reduce((s, m) => s + Number((q.baseVolume && q.baseVolume[m]) || q.avgVolume[m] || 0), 0) / activeMonths.length
-        : 0;
-      qTotalTd.innerHTML = '<div>Output: ' + fmtInt(qTotal) + '</div><div>AHT Avg: ' + fmtInt(qAvgAht) + '</div><div class="assumption-base">Base Avg: ' + fmtInt(qAvgBase) + '</div>';
+      qTotalTd.innerHTML = '<div>Output: ' + fmtInt(qTotal) + '</div><div>AHT Avg: ' + fmtInt(qAvgAht) + '</div><div class="assumption-base">Base: ' + fmtInt(qBaseTotal) + '</div>';
       qtr.appendChild(qTotalTd);
 
       qtr.addEventListener('click', (e) => {
@@ -2471,9 +2473,9 @@ function renderFormulas() {
     '<tr><td>Monthly Volume</td><td><code>Monthly Volume = Avg Volume × Working Days</code></td><td>Computed per workflow/month.</td></tr>' +
     '<tr><td>Base Total Work (hrs)</td><td><code>Base Total Work = (Monthly Volume × AHT / 3600) / Occupancy</code></td><td>If Avg Volume, AHT, or Occupancy is 0, Base Total Work is 0.</td></tr>' +
     '<tr><td>Workflow Total Work override</td><td><code>Workflow Total Work = Override Total Work (if present) else Base Total Work</code></td><td>Reads from <code>QUEUE_TOTAL_WORK_OVERRIDES</code>.</td></tr>' +
-    '<tr><td>Workflow Output (Assumptions tab)</td><td><code>Output = Avg Volume × 7</code></td><td>Displayed at workflow level.</td></tr>' +
-    '<tr><td>Vertical Output (Assumptions tab)</td><td><code>Vertical Output = SUM(Workflow Output)</code></td><td>Displayed at vertical level.</td></tr>' +
-    '<tr><td>Vertical Avg Vol × Working Days (Assumptions tab)</td><td><code>Vertical Avg Vol × WD = SUM(Workflow Avg Volume) × Working Days</code></td><td>Displayed at vertical level by month.</td></tr>' +
+    '<tr><td>Workflow Output (Assumptions tab)</td><td><code>Output = Avg Volume × 7</code></td><td>Displayed at workflow level by month.</td></tr>' +
+    '<tr><td>Workflow Base (Assumptions tab)</td><td><code>Base = Base Volume × 7</code></td><td>Displayed at workflow level by month.</td></tr>' +
+    '<tr><td>Vertical value (Assumptions tab)</td><td><code>Vertical = SUM(Workflow Avg Volume × Working Days)</code></td><td>Only vertical-level assumption metric shown by month.</td></tr>' +
     '<tr><td>Prod Hrs (row level)</td><td><code>Prod Hrs = Workflow Total Work × Workforce %</code></td><td>Applied to each workforce row from Workforce % Input.</td></tr>' +
     '<tr><td>Internal Prod Hrs (reference)</td><td><code>Internal Prod Hrs = max(0, Internal HC) × 8 × Working Days HC × (1 - Shrink Internal)</code></td><td>Reference/detail value; does not replace row Prod Hrs.</td></tr>' +
     '<tr><td>External Prod Hrs (reference)</td><td><code>External Prod Hrs = max(0, Prod Hrs - Internal Prod Hrs)</code></td><td>Reference/detail value.</td></tr>' +
