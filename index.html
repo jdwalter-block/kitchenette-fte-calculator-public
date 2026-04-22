@@ -1198,6 +1198,7 @@ let currentStaffExpandedSubs = new Set();
 let netStaffExpandedVerticals = new Set();
 let netStaffExpandedSubs = new Set();
 let verticalNetStaffShowBreakdown = false;
+let verticalNetStaffExpandedVerticals = new Set();
 let assumptionsExpandedVerticals = new Set();
 let assumptionsExpandedQueues = new Set();
 let workforcePendingFocusNav = null;
@@ -3111,34 +3112,45 @@ function renderVerticalNetStaff() {
     return;
   }
 
-  const currentByVertical = {};
+  const calcMap = buildCalculatedStaffMap();
+  const tree = {};
+  const verticalAgg = {};
+  const grand = {};
+  activeMonths.forEach(m => grand[m] = {current:0, required:0, variance:0});
+
   staffRows.forEach(r => {
     const v = displayStaffVerticalName(r.vertical);
-    if (!currentByVertical[v]) {
-      currentByVertical[v] = {};
-      activeMonths.forEach(m => currentByVertical[v][m] = 0);
+    const q = r.subVertical;
+    if (!tree[v]) tree[v] = {};
+    if (!tree[v][q]) {
+      tree[v][q] = {};
+      activeMonths.forEach(m => tree[v][q][m] = {current:0, required:0, variance:0});
     }
+    const key = normalizeStaffKey(r.vertical) + '|||' + normalizeStaffQueueKey(r.vertical, r.subVertical);
     activeMonths.forEach(m => {
       const cur = (r.staff && r.staff[m]) ? r.staff[m] : {internal:0, external:0};
-      currentByVertical[v][m] += (cur.internal || 0) + (cur.external || 0);
+      const calc = (calcMap[key] && calcMap[key][m]) ? calcMap[key][m] : {internal:0, external:0};
+      const current = (cur.internal || 0) + (cur.external || 0);
+      const required = (calc.internal || 0) + (calc.external || 0);
+      tree[v][q][m].current += current;
+      tree[v][q][m].required += required;
+      tree[v][q][m].variance += current - required;
     });
   });
 
-  const requiredByVertical = {};
-  allRows.forEach(r => {
-    if (!selectedVerticals.has(r.vertical) || !selectedMonths.has(r.month)) return;
-    const v = displayStaffVerticalName(r.vertical);
-    if (!requiredByVertical[v]) {
-      requiredByVertical[v] = {};
-      activeMonths.forEach(m => requiredByVertical[v][m] = 0);
-    }
-    requiredByVertical[v][r.month] += (r.fte || 0);
+  Object.keys(tree).forEach(v => {
+    verticalAgg[v] = {};
+    activeMonths.forEach(m => verticalAgg[v][m] = {current:0, required:0, variance:0});
+    Object.keys(tree[v]).forEach(q => {
+      activeMonths.forEach(m => {
+        verticalAgg[v][m].current += tree[v][q][m].current;
+        verticalAgg[v][m].required += tree[v][q][m].required;
+        verticalAgg[v][m].variance += tree[v][q][m].variance;
+      });
+    });
   });
 
-  const verticals = [...new Set([
-    ...Object.keys(currentByVertical),
-    ...Object.keys(requiredByVertical)
-  ])].sort();
+  const verticals = Object.keys(tree).sort();
 
   if (!verticals.length) {
     container.innerHTML = '<div class="pivot-title">Vertical Net Staff</div><div class="version-empty">No rows match the current filters.</div>';
@@ -3146,7 +3158,7 @@ function renderVerticalNetStaff() {
   }
 
   const toggleLabel = verticalNetStaffShowBreakdown ? 'Hide Breakdown' : 'Show Breakdown';
-  let headerRow1 = '<tr class="section-header"><th class="name-hdr" rowspan="' + (verticalNetStaffShowBreakdown ? '2' : '1') + '">Vertical</th>';
+  let headerRow1 = '<tr class="section-header"><th class="name-hdr" rowspan="' + (verticalNetStaffShowBreakdown ? '2' : '1') + '">Vertical / Workflow</th>';
   activeMonths.forEach(m => {
     if (verticalNetStaffShowBreakdown) {
       headerRow1 += '<th colspan="3" class="section-divider" style="text-align:center;font-size:12px;color:var(--text)">' + formatDisplayMonth(m) + '</th>';
@@ -3183,21 +3195,20 @@ function renderVerticalNetStaff() {
   }
 
   const tbody = document.getElementById('verticalNetStaffBody');
-  const grand = {};
-  activeMonths.forEach(m => grand[m] = {current:0, required:0, variance:0});
 
   verticals.forEach(v => {
+    const vExpanded = verticalNetStaffExpandedVerticals.has(v);
     const tr = document.createElement('tr');
     tr.className = 'hrs-l1';
     const tdName = document.createElement('td');
     tdName.className = 'hrs-name';
-    tdName.textContent = v;
+    tdName.innerHTML = '<span class="toggle-arrow">' + (vExpanded ? '▼' : '▶') + '</span> ' + escHtml(v);
     tr.appendChild(tdName);
 
     activeMonths.forEach(m => {
-      const cur = ((currentByVertical[v] && currentByVertical[v][m]) || 0);
-      const req = ((requiredByVertical[v] && requiredByVertical[v][m]) || 0);
-      const variance = cur - req;
+      const cur = (verticalAgg[v] && verticalAgg[v][m] && verticalAgg[v][m].current) || 0;
+      const req = (verticalAgg[v] && verticalAgg[v][m] && verticalAgg[v][m].required) || 0;
+      const variance = (verticalAgg[v] && verticalAgg[v][m] && verticalAgg[v][m].variance) || 0;
 
       grand[m].current += cur;
       grand[m].required += req;
@@ -3226,7 +3237,53 @@ function renderVerticalNetStaff() {
       }
     });
 
+    tr.addEventListener('click', () => {
+      if (verticalNetStaffExpandedVerticals.has(v)) verticalNetStaffExpandedVerticals.delete(v);
+      else verticalNetStaffExpandedVerticals.add(v);
+      renderVerticalNetStaff();
+    });
     tbody.appendChild(tr);
+
+    if (!vExpanded) return;
+
+    Object.keys(tree[v]).sort().forEach(q => {
+      const qtr = document.createElement('tr');
+      qtr.className = 'level-2';
+      const qNameTd = document.createElement('td');
+      qNameTd.className = 'name-cell indent-2';
+      qNameTd.textContent = q;
+      qtr.appendChild(qNameTd);
+
+      activeMonths.forEach(m => {
+        const cur = tree[v][q][m].current || 0;
+        const req = tree[v][q][m].required || 0;
+        const variance = tree[v][q][m].variance || 0;
+
+        if (!verticalNetStaffShowBreakdown) {
+          const tdVar = document.createElement('td');
+          tdVar.className = 'num-cell section-divider';
+          tdVar.textContent = fmtInt(variance);
+          qtr.appendChild(tdVar);
+        } else {
+          const tdCur = document.createElement('td');
+          tdCur.className = 'num-cell section-divider';
+          tdCur.textContent = fmtInt(cur);
+          qtr.appendChild(tdCur);
+
+          const tdReq = document.createElement('td');
+          tdReq.className = 'num-cell';
+          tdReq.textContent = fmtInt(req);
+          qtr.appendChild(tdReq);
+
+          const tdVar = document.createElement('td');
+          tdVar.className = 'num-cell';
+          tdVar.textContent = fmtInt(variance);
+          qtr.appendChild(tdVar);
+        }
+      });
+
+      tbody.appendChild(qtr);
+    });
   });
 
   const gtr = document.createElement('tr');
