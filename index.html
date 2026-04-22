@@ -98,6 +98,7 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
 .hier-table tr.level-2:hover{background:rgba(108,140,255,.07)}
 .hier-table tr.level-2 td{font-weight:600;font-size:11px;color:var(--text);padding:7px 10px}
 .hier-table tr.level-2 td.num-cell{color:var(--text)}
+.assumption-base{color:#f6d66a;font-style:italic;font-size:10px;line-height:1.2}
 /* Level 3 - Workforce Type */
 .hier-table tr.level-3{background:var(--bg)}
 .hier-table tr.level-3:hover{background:rgba(108,140,255,.04)}
@@ -464,14 +465,17 @@ function applyWorkflowStructureUpdates() {
         vertical,
         queue: row.queue,
         aht: buildEmptyMonthObject(),
-        avgVolume: buildEmptyMonthObject()
+        avgVolume: buildEmptyMonthObject(),
+        baseVolume: buildEmptyMonthObject()
       };
     }
     months.forEach(m => {
       const a = Number(row.aht && row.aht[m] || 0);
       const v = Number(row.avgVolume && row.avgVolume[m] || 0);
+      const b = Number(row.baseVolume && row.baseVolume[m] || 0);
       if (a !== 0 || wlByKey[key].aht[m] === 0) wlByKey[key].aht[m] = a;
       if (v !== 0 || wlByKey[key].avgVolume[m] === 0) wlByKey[key].avgVolume[m] = v;
+      if (b !== 0 || wlByKey[key].baseVolume[m] === 0) wlByKey[key].baseVolume[m] = b;
     });
   });
   workloadData = Object.values(wlByKey);
@@ -534,7 +538,8 @@ function applyWorkflowStructureUpdates() {
           vertical: targetVertical,
           queue: rule.newQueue,
           aht: buildEmptyMonthObject(),
-          avgVolume: buildEmptyMonthObject()
+          avgVolume: buildEmptyMonthObject(),
+          baseVolume: buildEmptyMonthObject()
         });
       }
     });
@@ -808,7 +813,7 @@ function parseExcel(arrayBuffer) {
 
   workloadData = [];
   let wlVertical = '', wlQueue = '';
-  const wlMap = {}; // key -> {vertical, queue, aht:{}, avgVolume:{}}
+  const wlMap = {}; // key -> {vertical, queue, aht:{}, avgVolume:{}, baseVolume:{}}
   for (let r = 1; r < wlRaw.length; r++) {
     const row = wlRaw[r];
     if (!row || row.every(c => c === null || c === undefined || c === '')) continue;
@@ -819,18 +824,19 @@ function parseExcel(arrayBuffer) {
     if (row[1] && String(row[1]).trim()) wlQueue = String(row[1]).trim();
     const metric = String(row[2] || '').trim();
     if (!wlVertical || !wlQueue || !metric) continue;
-    if (metric !== 'AHT' && metric !== 'Avg Volume') continue;
+    if (metric !== 'AHT' && metric !== 'Avg Volume' && metric !== 'Base Volume') continue;
 
     const key = wlVertical + '|||' + wlQueue;
     if (!wlMap[key]) {
-      wlMap[key] = {vertical: wlVertical, queue: wlQueue, aht: {}, avgVolume: {}};
-      months.forEach(m => { wlMap[key].aht[m] = 0; wlMap[key].avgVolume[m] = 0; });
+      wlMap[key] = {vertical: wlVertical, queue: wlQueue, aht: {}, avgVolume: {}, baseVolume: {}};
+      months.forEach(m => { wlMap[key].aht[m] = 0; wlMap[key].avgVolume[m] = 0; wlMap[key].baseVolume[m] = 0; });
     }
 
     wlMonthCols.forEach(mc => {
       const val = parseNum(row[mc.idx]);
       if (metric === 'AHT') wlMap[key].aht[mc.month] = val;
       else if (metric === 'Avg Volume') wlMap[key].avgVolume[mc.month] = val;
+      else if (metric === 'Base Volume') wlMap[key].baseVolume[mc.month] = val;
     });
   }
   workloadData = Object.values(wlMap);
@@ -1512,14 +1518,18 @@ function renderAssumptions() {
         const td = document.createElement('td');
         td.className = 'num-cell';
         const weekly = queueAgg[qKey][m] || 0;
+        const base = Number((q.baseVolume && q.baseVolume[m]) || q.avgVolume[m] || 0);
         const aht = Number(q.aht[m] || 0);
-        td.innerHTML = '<div>Wk: ' + fmtInt(weekly) + '</div><div>AHT: ' + fmtInt(aht) + '</div>';
+        td.innerHTML = '<div>Output: ' + fmtInt(weekly) + '</div><div>AHT: ' + fmtInt(aht) + '</div><div class="assumption-base">Base: ' + fmtInt(base) + '</div>';
         qtr.appendChild(td);
       });
 
       const qTotalTd = document.createElement('td');
       qTotalTd.className = 'num-cell';
-      qTotalTd.innerHTML = '<div>Wk: ' + fmtInt(qTotal) + '</div><div>AHT Avg: ' + fmtInt(qAvgAht) + '</div>';
+      const qAvgBase = activeMonths.length
+        ? activeMonths.reduce((s, m) => s + Number((q.baseVolume && q.baseVolume[m]) || q.avgVolume[m] || 0), 0) / activeMonths.length
+        : 0;
+      qTotalTd.innerHTML = '<div>Output: ' + fmtInt(qTotal) + '</div><div>AHT Avg: ' + fmtInt(qAvgAht) + '</div><div class="assumption-base">Base Avg: ' + fmtInt(qAvgBase) + '</div>';
       qtr.appendChild(qTotalTd);
 
       qtr.addEventListener('click', (e) => {
