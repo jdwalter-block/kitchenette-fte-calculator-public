@@ -356,13 +356,186 @@ let lastFileName = '';
 const internalHcOverrides = {};
 const WORKFORCE_INPUTS_STORAGE_KEY = 'kitchenette_workforce_inputs_v1';
 
+const WORKFLOW_UPDATE_RULES = [
+  {vertical:'Appeals', oldQueue:'', action:'Add', newQueue:'SameDay'},
+  {vertical:'I & C', oldQueue:'', action:'Add', newQueue:'Internal'},
+  {vertical:'Afterpay', oldQueue:'NA_Afterpay - IDV', action:'Change', newQueue:'AfterPay - IDV'},
+  {vertical:'ATO', oldQueue:'Self-Reported', action:'Change', newQueue:'ATO Self-Reported'},
+  {vertical:'Disputes', oldQueue:'Dispute Group 1', action:'Change', newQueue:'SAG 1'},
+  {vertical:'Disputes', oldQueue:'Dispute Group 2', action:'Change', newQueue:'SAG 2'},
+  {vertical:'Disputes', oldQueue:'Dispute Group 3', action:'Change', newQueue:'SAG 3'},
+  {vertical:'Disputes', oldQueue:'Dispute Group 4', action:'Change', newQueue:'SAG 4'},
+  {vertical:'Disputes', oldQueue:'Dispute Group 5', action:'Change', newQueue:'SAG 5'},
+  {vertical:'Disputes', oldQueue:'Dispute Group 6', action:'Change', newQueue:'SAG 6'},
+  {vertical:'Disputes', oldQueue:'Dispute Group 7', action:'Change', newQueue:'SAG 7'},
+  {vertical:'Foundations', oldQueue:'Foundation', action:'Change', newQueue:'FND'},
+  {vertical:'I & C', oldQueue:'EV', action:'Change', newQueue:'IAS'},
+  {vertical:'I & C', oldQueue:'IDV', action:'Change', newQueue:'IDV/Cash Card Sig'},
+  {vertical:'Square', oldQueue:'Afterpay', action:'Change', newQueue:'AftPay'},
+  {vertical:'Square', oldQueue:'Disputes', action:'Change', newQueue:'Dispt'},
+  {vertical:'Afterpay', oldQueue:'ANZ_Afterpay - IDV', action:'Remove', newQueue:''},
+  {vertical:'Afterpay', oldQueue:'UK_Afterpay - IDV', action:'Remove', newQueue:''},
+  {vertical:'Disputes', oldQueue:'Appeals', action:'Remove', newQueue:''},
+  {vertical:'Scam', oldQueue:'Suspected Scams', action:'Remove', newQueue:''}
+];
+
+function normWorkflowKey(v) {
+  return String(v || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function ruleVerticalAliases(vertical) {
+  const v = String(vertical || '').trim();
+  if (v === 'I&C' || v === 'I & C') return ['I & C', 'I&C'];
+  if (v === 'Foundations' || v === 'BIT') return ['Foundations', 'BIT'];
+  return [v];
+}
+
+function queueMatchesRule(queueValue, ruleOldQueue) {
+  const q = normWorkflowKey(queueValue);
+  const oldQ = normWorkflowKey(ruleOldQueue);
+  if (!oldQ) return false;
+  if (q === oldQ) return true;
+  if (oldQ === 'appeals' && q === 'appeal') return true;
+  if (oldQ === 'foundation' && q === 'foundations') return true;
+  if (oldQ === 'selfreported' && q === 'atoselfreported') return true;
+  return false;
+}
+
+function getRuleForQueue(vertical, queue) {
+  const v = String(vertical || '').trim();
+  for (const rule of WORKFLOW_UPDATE_RULES) {
+    if (rule.action !== 'Change' && rule.action !== 'Remove') continue;
+    if (!ruleVerticalAliases(rule.vertical).includes(v)) continue;
+    if (queueMatchesRule(queue, rule.oldQueue)) return rule;
+  }
+  return null;
+}
+
+function buildEmptyMonthObject() {
+  const out = {};
+  months.forEach(m => { out[m] = 0; });
+  return out;
+}
+
+function transformQueueName(vertical, queue) {
+  const rule = getRuleForQueue(vertical, queue);
+  if (!rule) return {queue, removed:false};
+  if (rule.action === 'Remove') return {queue, removed:true};
+  return {queue: rule.newQueue || queue, removed:false};
+}
+
+function applyWorkflowStructureUpdates() {
+  workloadData = workloadData
+    .map(row => {
+      const t = transformQueueName(row.vertical, row.queue);
+      if (t.removed) return null;
+      return {...row, queue: t.queue};
+    })
+    .filter(Boolean);
+
+  WORKFLOW_UPDATE_RULES
+    .filter(r => r.action === 'Add' && r.newQueue)
+    .forEach(rule => {
+      const targetVertical = rule.vertical === 'I&C' ? 'I & C' : rule.vertical;
+      if (!workloadData.some(w => w.vertical === targetVertical && normWorkflowKey(w.queue) === normWorkflowKey(rule.newQueue))) {
+        workloadData.push({
+          vertical: targetVertical,
+          queue: rule.newQueue,
+          aht: buildEmptyMonthObject(),
+          avgVolume: buildEmptyMonthObject()
+        });
+      }
+    });
+
+  workloadPctData = workloadPctData
+    .map(row => {
+      const t = transformQueueName(row.vertical, row.queue);
+      if (t.removed) return null;
+      return {...row, queue: t.queue};
+    })
+    .filter(Boolean);
+
+  WORKFLOW_UPDATE_RULES
+    .filter(r => r.action === 'Add' && r.newQueue)
+    .forEach(rule => {
+      const targetVertical = rule.vertical === 'I&C' ? 'I & C' : rule.vertical;
+      const types = [...new Set(workloadPctData.filter(w => w.vertical === targetVertical).map(w => w.type))];
+      const wfTypes = types.length ? types : ['Internal'];
+      wfTypes.forEach(type => {
+        const exists = workloadPctData.some(w =>
+          w.vertical === targetVertical &&
+          w.type === type &&
+          normWorkflowKey(w.queue) === normWorkflowKey(rule.newQueue)
+        );
+        if (!exists) workloadPctData.push({vertical: targetVertical, queue: rule.newQueue, type, pct: buildEmptyMonthObject()});
+      });
+    });
+
+  currentStaffData = currentStaffData
+    .map(row => {
+      const t = transformQueueName(row.vertical, row.subVertical);
+      if (t.removed) return null;
+      return {...row, subVertical: t.queue};
+    })
+    .filter(Boolean);
+
+  WORKFLOW_UPDATE_RULES
+    .filter(r => r.action === 'Add' && r.newQueue)
+    .forEach(rule => {
+      const targetVertical = rule.vertical === 'I&C' ? 'I & C' : rule.vertical;
+      const exists = currentStaffData.some(r =>
+        r.vertical === targetVertical &&
+        normWorkflowKey(r.subVertical) === normWorkflowKey(rule.newQueue)
+      );
+      if (!exists) {
+        const staff = {};
+        months.forEach(m => { staff[m] = {internal:0, external:0}; });
+        currentStaffData.push({vertical: targetVertical, subVertical: rule.newQueue, staff});
+      }
+    });
+
+  const nextOverrides = {};
+  Object.keys(internalHcOverrides).forEach(key => {
+    const parts = key.split('|||');
+    if (parts.length !== 3) return;
+    const [vertical, queue, month] = parts;
+    const val = internalHcOverrides[key];
+    const t = transformQueueName(vertical, queue);
+    if (!t.removed) nextOverrides[`${vertical}|||${t.queue}|||${month}`] = val;
+  });
+  Object.keys(internalHcOverrides).forEach(k => delete internalHcOverrides[k]);
+  Object.keys(nextOverrides).forEach(k => { internalHcOverrides[k] = nextOverrides[k]; });
+}
+
+function migrateSavedWorkforceInputs(parsed) {
+  if (!parsed || typeof parsed !== 'object') return parsed;
+  const migrated = {pct:{}, internalHcOverrides:{}};
+  const srcPct = parsed.pct && typeof parsed.pct === 'object' ? parsed.pct : {};
+  Object.keys(srcPct).forEach(k => {
+    const parts = k.split('|||');
+    if (parts.length !== 4) return;
+    const [vertical, queue, type, month] = parts;
+    const t = transformQueueName(vertical, queue);
+    if (!t.removed) migrated.pct[`${vertical}|||${t.queue}|||${type}|||${month}`] = srcPct[k];
+  });
+  const srcInt = parsed.internalHcOverrides && typeof parsed.internalHcOverrides === 'object' ? parsed.internalHcOverrides : {};
+  Object.keys(srcInt).forEach(k => {
+    const parts = k.split('|||');
+    if (parts.length !== 3) return;
+    const [vertical, queue, month] = parts;
+    const t = transformQueueName(vertical, queue);
+    if (!t.removed) migrated.internalHcOverrides[`${vertical}|||${t.queue}|||${month}`] = srcInt[k];
+  });
+  return migrated;
+}
+
 function loadSavedWorkforceInputs() {
   try {
     const raw = localStorage.getItem(WORKFORCE_INPUTS_STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object') return null;
-    return parsed;
+    return migrateSavedWorkforceInputs(parsed);
   } catch (_) {
     return null;
   }
@@ -651,6 +824,9 @@ function parseExcel(arrayBuffer) {
     if (targetsBySection.Total) riskOpsTargets = {bySection: targetsBySection};
   }
 
+  // Apply workflow rename/add/remove rules before building rows.
+  applyWorkflowStructureUpdates();
+
   // ===== BUILD ALL ROWS =====
   applySavedWorkforceInputs();
   buildRowsVerticalWorkforceAllocation();
@@ -878,6 +1054,7 @@ function applyRiskOpsTargetsToRows() {
 
 // ===== BUILD INITIAL ROWS =====
 function buildAllRows() {
+  applyWorkflowStructureUpdates();
   applySavedWorkforceInputs();
   buildRowsVerticalWorkforceAllocation();
 }
