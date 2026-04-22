@@ -296,6 +296,7 @@ Internal, Con - India, Con - Latam, Probe - India, ALMS - India, Sutherland - In
   <div class="tab" data-tab="assumptions">Assumptions</div>
   <div class="tab" data-tab="currentStaff">Current Staff</div>
   <div class="tab" data-tab="netStaffing">Net Staffing</div>
+  <div class="tab" data-tab="appOverview">App Overview</div>
   <div class="tab" data-tab="formulas">Formulas</div>
   <div class="tab" data-tab="versionHistory" id="tab-versionHistory">Version History</div>
   <div class="tab" data-tab="workforceInput" id="tab-workforceInput">Workforce % Input</div>
@@ -316,6 +317,7 @@ Internal, Con - India, Con - Latam, Probe - India, ALMS - India, Sutherland - In
   <div id="currentStaffSection" class="section-hidden"></div>
   <div id="netStaffingSection" class="section-hidden"></div>
   <div id="assumptionsSection" class="section-hidden"></div>
+  <div id="appOverviewSection" class="section-hidden"></div>
   <div id="formulasSection" class="section-hidden"></div>
   <div id="versionHistorySection" class="section-hidden"></div>
 </div>
@@ -1149,6 +1151,7 @@ function render() {
   document.getElementById('currentStaffSection').classList.toggle('section-hidden', activeTab !== 'currentStaff');
   document.getElementById('netStaffingSection').classList.toggle('section-hidden', activeTab !== 'netStaffing');
   document.getElementById('assumptionsSection').classList.toggle('section-hidden', activeTab !== 'assumptions');
+  document.getElementById('appOverviewSection').classList.toggle('section-hidden', activeTab !== 'appOverview');
   document.getElementById('formulasSection').classList.toggle('section-hidden', activeTab !== 'formulas');
   document.getElementById('versionHistorySection').classList.toggle('section-hidden', activeTab !== 'versionHistory');
 
@@ -1161,6 +1164,7 @@ function render() {
   else if (activeTab === 'currentStaff') renderCurrentStaff();
   else if (activeTab === 'netStaffing') renderNetStaffing(filtered);
   else if (activeTab === 'assumptions') renderAssumptions();
+  else if (activeTab === 'appOverview') renderAppOverview();
   else if (activeTab === 'formulas') renderFormulas();
   else if (activeTab === 'versionHistory') renderVersionHistory();
 }
@@ -2091,6 +2095,111 @@ function renderHrsByWf(filtered) {
 }
 
 // ===== FORMULAS =====
+function renderAppOverview() {
+  const c = document.getElementById('appOverviewSection');
+  const text = `The Kitchenette FTE Calculator is designed as a single-page workforce planning console, built to move users from high-level staffing views to detailed validation without ever leaving the page.
+The interface follows a clear top-to-bottom hierarchy:
+1. Header (Status & Actions)
+The header provides immediate context and control. It displays:
+• App title and live row count
+• Current data source (default: Kitchenette_20260414.xlsx)
+• A Show Hidden Tabs toggle to reveal advanced functionality
+• An Export CSV action for downstream use
+This layer answers: What data am I looking at, and what can I do with it?
+
+2. Global Filter Bar (Data Slicing)
+All analysis is driven by a centralized filter bar with multi-select controls:
+• Vertical
+• Workflow (dynamically scoped based on selected verticals)
+• Workforce Type
+• Month
+This ensures every tab reflects the same scoped dataset, enabling consistent comparisons across views.
+
+3. Tab Layer (Analysis Engine)
+The tab system is the core of the application. It allows users to pivot perspectives without navigation or reloads. Core views are visible by default, while advanced/debugging views are revealed via Show Hidden Tabs.
+
+Core Views (Default)
+1. Headcount (HC) by Vertical (Landing View)
+A hierarchical breakdown:
+Vertical → Workflow → Workforce Type → Month
+This view shows forecasted headcount derived from Assumptions (e.g., volume, AHT, productivity inputs).
+It is the primary top-down planning view for understanding required staffing.
+
+2. Headcount (HC) by Workforce
+Reorients the same data to:
+Workforce Type → Vertical → Workflow
+This view shows forecasted headcount driven by Workforce % Input allocations, reflecting how total demand is distributed across workforce types.
+Useful for validating staffing mix and allocation strategy.
+
+3. Assumptions
+Summarizes key operational drivers (e.g., volume, AHT).
+This is the core input layer that drives forecasted headcount calculations.
+
+4. Current Staff
+Displays actual staffing levels (internal/external) by vertical and sub-vertical.
+Acts as the baseline for comparison against forecasted demand.
+
+5. Net Staffing
+Calculates staffing gaps:
+Net = Current Staff – Calculated Headcount
+This is the primary decision-making view for identifying shortages or surpluses.
+
+6. Formulas
+Provides full transparency into calculation logic.
+Supports auditability and trust in the model.
+
+7. Detail Table
+Row-level output of all calculations with sorting and drill-in capability.
+This is the deepest level of validation across both assumptions-driven and allocation-driven outputs.
+
+Advanced / Hidden Views
+1. Headcount (HC) by Vertical (Int/Ext)
+Extends the vertical view by inserting an internal/external split before workforce type.
+
+2. Hours by Workforce
+Breaks down hours by workforce and month, including:
+• Productivity
+• Shrink
+• Training
+This view is used for monthly hours locking, serving as the control point for finalized workforce capacity inputs.
+Includes a toggle for expanded detail.
+
+3. Version History
+Tracks changes with metadata (date, vertical/group/workflow, action, impact).
+Useful for governance and traceability.
+
+4. Workforce % Input
+Editable allocation layer for workforce distribution by workflow and month.
+Directly drives the Headcount by Workforce view and downstream allocation logic.
+
+Overall Design Philosophy
+The application is intentionally layered to support a progressive workflow:
+• Start broad with assumptions-driven headcount (HC by Vertical)
+• Allocate demand using Workforce % Input (HC by Workforce)
+• Compare against reality via Current Staff and Net Staffing
+• Validate drivers and math through Assumptions and Formulas
+• Audit at the lowest level in the Detail Table
+This structure allows users to move seamlessly from strategic planning to operational validation within a single interface.
+
+Typical User Workflow
+• Set scope using filters
+Select Vertical, Workflow, Workforce Type, and Month to define the planning slice.
+• Review forecasted demand
+Use Headcount (HC) by Vertical to understand required staffing based on Assumptions.
+• Adjust workforce allocation
+Update Workforce % Input and validate distribution in Headcount (HC) by Workforce.
+• Lock monthly capacity
+Use Hours by Workforce to finalize and lock monthly hours inputs.
+• Identify and validate gaps
+Review Net Staffing against Current Staff, then drill into Detail Table or Formulas for validation.`;
+
+  c.innerHTML =
+    '<div class="pivot-title">App Overview</div>' +
+    '<div class="table-wrap"><div style="padding:18px 20px; white-space:pre-wrap; line-height:1.55; color:var(--text)">' +
+    escHtml(text) +
+    '</div></div>';
+}
+
 function renderFormulas() {
   const c = document.getElementById('formulasSection');
   c.innerHTML =
