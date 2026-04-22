@@ -1458,7 +1458,8 @@ function renderAssumptions() {
       activeMonths.forEach(m => {
         const avgVol = Number(tree[v][qName].avgVolume[m] || 0);
         const weeklyVol = avgVol * 7;
-        const baseVol = Number((tree[v][qName].baseVolume && tree[v][qName].baseVolume[m]) || 0);
+        const baseRaw = (tree[v][qName].baseVolume && tree[v][qName].baseVolume[m]);
+        const baseVol = Number(baseRaw ?? avgVol);
         const baseWeeklyVol = baseVol * 7;
         const wd = Number(workingDays[m] || 0);
         const avgWd = avgVol * wd;
