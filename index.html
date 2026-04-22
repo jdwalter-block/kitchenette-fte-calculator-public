@@ -1361,7 +1361,6 @@ function renderAssumptions() {
   });
 
   let html = '<div class="pivot-title">Assumptions by Vertical — Hierarchical Drill-Down</div>';
-  html += '<div class="pivot-subtitle">Vertical rows show Weekly Volume totals. Workflow rows show Weekly Volume and AHT. Workforce rows show Internal HC and External Workforce % (whole numbers).</div>';
   html += '<div class="hier-table"><table><thead><tr><th style="min-width:320px">Name</th>';
   activeMonths.forEach(m => html += '<th class="num-col">' + formatDisplayMonth(m) + '</th>');
   html += '<th class="num-col">Total</th></tr></thead><tbody id="assumptionsBody"></tbody></table></div>';
