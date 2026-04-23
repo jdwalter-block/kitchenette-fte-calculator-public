@@ -1131,22 +1131,48 @@ function buildRowsVerticalWorkforceAllocation() {
       queueStats.forEach(q => {
         const allocations = workloadPctData.filter(w => w.vertical === vertical && w.queue === q.queue);
         const allocationRows = allocations.length ? allocations : [{type:'Workflow Total', pct:{[month]:1}}];
-        const queueCurrentInternal = getCurrentStaffByGroup(vertical, q.queue, month, true);
+        const queueCurrentInternal = getCurrentStaffInternalHC(vertical, q.queue, month);
         const queueCurrentExternal = getCurrentStaffByGroup(vertical, q.queue, month, false);
 
-        allocationRows.forEach(a => {
+        const rowInputs = allocationRows.map(a => {
           const wfType = a.type || 'Workflow Total';
           const wlPctRaw = Number.isFinite(a.pct?.[month]) ? a.pct[month] : 0;
           const wlPct = Math.max(0, wlPctRaw);
-          const prodHrs = q.totalWork * wlPct;
-          const shrinkInternal = sd.shrinkInternal[month] || 0;
-          const intProdHrs = Math.max(0, queueCurrentInternal) * 8 * wdFte * (1 - shrinkInternal);
-          const extProdHrs = Math.max(0, prodHrs - intProdHrs);
+          return {wfType, wlPct};
+        });
+        const internalRows = rowInputs.filter(r => r.wfType === 'Internal');
+        const externalRows = rowInputs.filter(r => r.wfType !== 'Internal');
+        const internalPctSum = internalRows.reduce((s, r) => s + r.wlPct, 0);
+        const externalPctSum = externalRows.reduce((s, r) => s + r.wlPct, 0);
+
+        // Queue-level production split:
+        // 1) If external workforce % is zero, internal covers the full workflow work.
+        // 2) Otherwise, internal uses HC back-into at 120 hrs/HC (capped at workflow total),
+        //    and external gets the remainder.
+        const internalProdTarget = externalPctSum === 0
+          ? q.totalWork
+          : Math.min(q.totalWork, Math.max(0, queueCurrentInternal) * 120);
+        const externalProdTarget = Math.max(0, q.totalWork - internalProdTarget);
+
+        rowInputs.forEach(row => {
+          let prodHrs = 0;
+          if (row.wfType === 'Internal') {
+            if (internalRows.length === 1) prodHrs = internalProdTarget;
+            else if (internalPctSum > 0) prodHrs = internalProdTarget * (row.wlPct / internalPctSum);
+            else prodHrs = internalRows.length ? (internalProdTarget / internalRows.length) : 0;
+          } else {
+            if (externalRows.length === 1) prodHrs = externalProdTarget;
+            else if (externalPctSum > 0) prodHrs = externalProdTarget * (row.wlPct / externalPctSum);
+            else prodHrs = externalRows.length ? (externalProdTarget / externalRows.length) : 0;
+          }
+
+          const intProdHrs = row.wfType === 'Internal' ? prodHrs : 0;
+          const extProdHrs = row.wfType === 'Internal' ? 0 : prodHrs;
           const shrinkRate = sd.shrinkExternal[month] || 0;
           const shrinkHrs = (shrinkRate === 1) ? 0 : (shrinkRate / (1 - shrinkRate)) * prodHrs;
           const totalHrs = prodHrs + shrinkHrs;
           const fte = (wdFte === 0) ? 0 : totalHrs / 8 / wdFte;
-          const currentStaff = (wfType === 'Internal') ? queueCurrentInternal : queueCurrentExternal;
+          const currentStaff = (row.wfType === 'Internal') ? queueCurrentInternal : queueCurrentExternal;
 
           allRows.push({
             avgVol: q.avgVol,
@@ -1158,8 +1184,8 @@ function buildRowsVerticalWorkforceAllocation() {
             totalWork: q.totalWork,
             verticalMonthlyVol,
             verticalTotalWork,
-            wlPct,
-            wfPctInput: wlPct,
+            wlPct: row.wlPct,
+            wfPctInput: row.wlPct,
             currentStaff,
             intProdHrs,
             extProdHrs,
@@ -1170,7 +1196,7 @@ function buildRowsVerticalWorkforceAllocation() {
             fte,
             vertical,
             queue: q.queue,
-            wfType,
+            wfType: row.wfType,
             month
           });
         });
@@ -2503,9 +2529,11 @@ function renderFormulas() {
     '<tr><td>Workflow Output (Assumptions tab)</td><td><code>Output = Avg Volume × 7</code></td><td>Displayed at workflow level by month.</td></tr>' +
     '<tr><td>Workflow Base (Assumptions tab)</td><td><code>Base = Base Volume × 7</code></td><td>Displayed at workflow level by month.</td></tr>' +
     '<tr><td>Vertical value (Assumptions tab)</td><td><code>Vertical = SUM(Workflow Avg Volume × Working Days)</code></td><td>Only vertical-level assumption metric shown by month.</td></tr>' +
-    '<tr><td>Prod Hrs (row level)</td><td><code>Prod Hrs = Workflow Total Work × Workforce %</code></td><td>Applied to each workforce row from Workforce % Input.</td></tr>' +
-    '<tr><td>Internal Prod Hrs (reference)</td><td><code>Internal Prod Hrs = max(0, Internal HC) × 8 × Working Days HC × (1 - Shrink Internal)</code></td><td>Reference/detail value; does not replace row Prod Hrs.</td></tr>' +
-    '<tr><td>External Prod Hrs (reference)</td><td><code>External Prod Hrs = max(0, Prod Hrs - Internal Prod Hrs)</code></td><td>Reference/detail value.</td></tr>' +
+    '<tr><td>Internal Prod target (workflow)</td><td><code>If External % sum = 0: Internal Prod = Workflow Total Work; else Internal Prod = min(Workflow Total Work, Internal HC × 120)</code></td><td>Applied per workflow/month using Internal (HC) from Workforce % Input.</td></tr>' +
+    '<tr><td>External Prod target (workflow)</td><td><code>External Prod = max(0, Workflow Total Work - Internal Prod)</code></td><td>Workflow remainder after internal production.</td></tr>' +
+    '<tr><td>Prod Hrs (row level)</td><td><code>Internal rows: share Internal Prod target; External rows: share External Prod target by external Workforce %</code></td><td>If a side has one row, it receives the full target.</td></tr>' +
+    '<tr><td>Internal Prod Hrs (reference)</td><td><code>Internal row Prod Hrs</code></td><td>Displays row-level internal production allocation.</td></tr>' +
+    '<tr><td>External Prod Hrs (reference)</td><td><code>External row Prod Hrs</code></td><td>Displays row-level external production allocation.</td></tr>' +
     '<tr><td>Shrink rate used for row calc</td><td><code>rate = Shrink External</code></td><td>Current production formula always uses external billable shrink for row shrink hours.</td></tr>' +
     '<tr><td>Shrink Hrs</td><td><code>Shrink Hrs = (rate / (1 - rate)) × Prod Hrs</code></td><td>If <code>rate === 1</code>, shrink is forced to 0.</td></tr>' +
     '<tr><td>Total Hrs</td><td><code>Total Hrs = Prod Hrs + Shrink Hrs</code></td><td>Used for all HC rollups.</td></tr>' +
