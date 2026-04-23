@@ -2623,12 +2623,12 @@ function renderWorkforceInput() {
         workforcePendingFocusNav = nextNav;
       });
       if (isInternal) {
-        const hc = getInternalHCForInput(r.vertical, r.queue, m);
+        const hc = getCurrentStaffInternalHC(r.vertical, r.queue, m);
         input.step = '1';
         input.value = String(Math.round(hc));
         input.style.fontWeight = '600';
         input.style.color = 'var(--yellow)';
-        input.title = 'Editable Internal HC (Current Staff, else Forecast fallback)';
+        input.title = 'Editable Internal HC';
         input.addEventListener('change', () => {
           const nextHc = Math.max(0, Math.round(parseNum(input.value)));
           const key = r.vertical + '|||' + r.queue + '|||' + m;
@@ -2922,23 +2922,6 @@ function getCurrentStaffInternalHC(vertical, queue, month) {
     return internalHcOverrides[overrideKey];
   }
   return getCurrentStaffByGroup(vertical, queue, month, true);
-}
-
-function getCalculatedInternalForecastHC(vertical, queue, month) {
-  return allRows
-    .filter(r =>
-      r.vertical === vertical &&
-      r.queue === queue &&
-      r.month === month &&
-      r.wfType === 'Internal'
-    )
-    .reduce((sum, r) => sum + (r.fte || 0), 0);
-}
-
-function getInternalHCForInput(vertical, queue, month) {
-  const currentHc = getCurrentStaffInternalHC(vertical, queue, month);
-  if (currentHc > 0) return currentHc;
-  return getCalculatedInternalForecastHC(vertical, queue, month);
 }
 
 function displayStaffVerticalName(vertical) {
