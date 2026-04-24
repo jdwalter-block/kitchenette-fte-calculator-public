@@ -290,14 +290,14 @@ Internal, Con - India, Con - Latam, Probe - India, ALMS - India, Sutherland - In
   </div>
 </div>
 <div class="tabs">
-  <div class="tab active" data-tab="pivotVertical">Headcount (HC) by Vertical</div>
+  <div class="tab active" data-tab="verticalNetStaff">Vertical Net Staff</div>
+  <div class="tab" data-tab="pivotVertical">Headcount (HC) by Vertical</div>
   <div class="tab" data-tab="pivotVerticalIntExt" id="tab-pivotVerticalIntExt">Headcount (HC) by Vertical (Int/Ext)</div>
   <div class="tab" data-tab="pivotWf">Headcount (HC) by Workforce</div>
   <div class="tab" data-tab="hrsByWf" id="tab-hrsByWf">Hours by Workforce</div>
   <div class="tab" data-tab="assumptions">Assumptions</div>
   <div class="tab" data-tab="currentStaff">Current Staff</div>
   <div class="tab" data-tab="netStaffing">Net Staffing</div>
-  <div class="tab" data-tab="verticalNetStaff">Vertical Net Staff</div>
   <div class="tab" data-tab="formulas">Formulas</div>
   <div class="tab" data-tab="appOverview">App Overview</div>
   <div class="tab" data-tab="versionHistory" id="tab-versionHistory">Version History</div>
@@ -1336,7 +1336,7 @@ let selectedVerticals = new Set(allVerticals);
 let selectedQueues = new Set(allQueues);
 let selectedWfTypes = new Set(allWfTypes);
 let selectedMonths = new Set(months);
-let activeTab = 'pivotVertical';
+let activeTab = 'verticalNetStaff';
 const hiddenTabKeys = ['pivotVerticalIntExt', 'hrsByWf', 'versionHistory', 'workforceInput', 'detail'];
 let hiddenTabsVisible = false;
 let sortCol = -1;
